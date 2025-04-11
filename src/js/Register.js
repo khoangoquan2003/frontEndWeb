@@ -43,13 +43,13 @@ const Register = () => {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="w-full max-w-md bg-white p-8 shadow-md rounded-lg">
-                <h2 className="text-2xl font-bold mb-4 text-center">Đăng Ký</h2>
+                <h2 className="text-2xl font-bold mb-4 text-center">Register</h2>
                 {error && <p className="text-red-500 text-center">{error}</p>}
                 {success && <p className="text-green-500 text-center">{success}</p>}
                 <form onSubmit={handleRegister}>
                     <input
                         type="text"
-                        placeholder="Tên hiển thị"
+                        placeholder="Nickname"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
                         value={nickName}
                         onChange={(e) => setNickName(e.target.value)}
@@ -57,7 +57,7 @@ const Register = () => {
                     />
                     <input
                         type="text"
-                        placeholder="Tên đăng nhập"
+                        placeholder="Username"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
                         value={userName}
                         onChange={(e) => setUserName(e.target.value)}
@@ -65,20 +65,21 @@ const Register = () => {
                     />
                     <input
                         type="password"
-                        placeholder="Mật khẩu"
+                        placeholder="Password"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                     />
                     <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
-                        Đăng Ký
+                        Register
                     </button>
                 </form>
                 <div className="text-sm text-center mt-3">
-                    Đã có tài khoản?
+                   Have an account? |
+
                     <span className="text-blue-500 hover:underline cursor-pointer" onClick={() => navigate('/login')}>
-                        Đăng nhập ngay
+                          Login now
                     </span>
                 </div>
             </div>
