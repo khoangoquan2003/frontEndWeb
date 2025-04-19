@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import dlImage from '../img/1.jpg';
-
+import dlImage from '../../assets/img/1.jpg';
+import {AuthApi} from "../../api/Auth";
 
 const Login = () => {
     const navigate = useNavigate();
-    const [userName, setUserName] = useState('');
+    const [username, setUserName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
         try {
             const response = await axios.post("http://localhost:8080/auth/test-log-in", {
-                userName,
+                username,
                 password
             }, {
                 headers: { "Content-Type": "application/json" }
@@ -23,7 +27,13 @@ const Login = () => {
             console.log("Response:", response.data);
             if (response.data.result) {
                 localStorage.setItem("token", response.data.result.token);
-                navigate("/homepage");
+                localStorage.setItem("nickname", response.data.result.nickName); // 👈 Thêm dòng này
+                setSuccessMessage("Đăng nhập thành công!");
+
+                setTimeout(() => {
+                    window.location.href = "/homepage"; // ✅ hard reload trang → đọc lại nickname
+                }, 1500);
+
             } else {
                 setError("Sai tài khoản hoặc mật khẩu!");
             }
@@ -32,6 +42,16 @@ const Login = () => {
             setError(err.response?.data?.message || "Đăng nhập thất bại!");
         }
     };
+
+    useEffect(() => {
+        AuthApi.login("123", "123").then(resp => {
+            const nickName = resp.data.result.nickName;
+            console.log("Nickname:", nickName);
+        });
+    }, []);
+
+
+
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 relative">
@@ -45,11 +65,18 @@ const Login = () => {
 
             <div className="w-full max-w-md bg-white p-8 shadow-md rounded-lg">
                 <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+
                 {error && <p className="text-red-500 text-center">{error}</p>}
-                <button className="w-full flex items-center justify-center py-2 border rounded-md shadow-sm bg-white hover:bg-gray-100 text-gray-700 mb-4">
+                {successMessage && <p className="text-green-600 text-center font-medium">{successMessage}</p>}
+
+                <a
+                    href="http://localhost:8080/oauth2/authorization/google"
+                    className="w-full flex items-center justify-center py-2 border rounded-md shadow-sm bg-white hover:bg-gray-100 text-gray-700 mb-4"
+                >
                     <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" className="w-5 h-5 mr-2" />
-                    Login with google
-                </button>
+                    Login with Google
+                </a>
+
 
                 <div className="text-gray-500 text-sm text-center mb-4">Or enter your password</div>
 
@@ -58,7 +85,7 @@ const Login = () => {
                         type="text"
                         placeholder="Username or Email"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
-                        value={userName}
+                        value={username}
                         onChange={(e) => setUserName(e.target.value)}
                         required
                     />

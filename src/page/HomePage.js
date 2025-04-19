@@ -1,16 +1,34 @@
-import React from "react";
-import { Link } from "react-router-dom"; // Import Link
-import ListeningPractice from "./ListeningPractice";
-import dlImage from "../img/1.jpg";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import ListeningPractice from "../components/dictation/ListeningPractice";
+import dlImage from "../assets/img/1.jpg";
 
 const HomePage = () => {
+    const location = useLocation();
+    const [showPopup, setShowPopup] = useState(false);
+
+    useEffect(() => {
+        if (location.state?.loginSuccess) {
+            setShowPopup(true);
+            const timer = setTimeout(() => setShowPopup(false), 2500);
+            return () => clearTimeout(timer);
+        }
+    }, [location.state]);
+
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 relative">
+            {/* ✅ Popup khi đăng nhập thành công */}
+            {showPopup && (
+                <div className="fixed top-5 right-5 bg-green-500 text-white px-4 py-2 rounded shadow-md z-50 animate-bounce">
+                    Đăng nhập thành công!
+                </div>
+            )}
+
             {/* Header */}
             <header className="bg-white shadow p-4 flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                     <img src={dlImage} alt="Download" className="w-10 h-10" />
-                    <h1 className="text-xl font-bold">Luyện Nghe Tiếng Anh</h1>
+                    <h1 className="text-xl font-bold">Học Tiếng Anh</h1>
                 </div>
                 <div className="space-x-4">
                     <Link to="/login" className="text-blue-500 hover:underline">Đăng nhập</Link>
