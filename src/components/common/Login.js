@@ -24,19 +24,20 @@ const Login = () => {
                 headers: { "Content-Type": "application/json" }
             });
 
-            console.log("Response:", response.data);
-            if (response.data.result) {
-                localStorage.setItem("token", response.data.result.token);
-                localStorage.setItem("nickname", response.data.result.nickName); // 👈 Thêm dòng này
-                setSuccessMessage("Đăng nhập thành công!");
+            const token = response.data?.result?.token;
+            const nickname = response.data?.result?.nickName;
 
-                setTimeout(() => {
-                    window.location.href = "/homepage"; // ✅ hard reload trang → đọc lại nickname
-                }, 1500);
+            if (token) {
+                localStorage.setItem("token", token);
+                localStorage.setItem("nickname", nickname);
 
+                // ❌ Không cần setSuccessMessage nữa
+                // ✅ Chuyển qua navigate để truyền loginSuccess
+                navigate("/homepage", { state: { loginSuccess: true } });
             } else {
                 setError("Sai tài khoản hoặc mật khẩu!");
             }
+
         } catch (err) {
             console.error("Lỗi đăng nhập:", err);
             setError(err.response?.data?.message || "Đăng nhập thất bại!");
@@ -67,7 +68,6 @@ const Login = () => {
                 <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
 
                 {error && <p className="text-red-500 text-center">{error}</p>}
-                {successMessage && <p className="text-green-600 text-center font-medium">{successMessage}</p>}
 
                 <a
                     href="http://localhost:8080/oauth2/authorization/google"

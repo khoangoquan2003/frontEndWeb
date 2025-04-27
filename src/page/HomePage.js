@@ -1,29 +1,49 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import ListeningPractice from "../components/dictation/ListeningPractice";
 import dlImage from "../assets/img/1.jpg";
+import { toast } from "react-toastify";
 
 const HomePage = () => {
     const location = useLocation();
-    const [showPopup, setShowPopup] = useState(false);
+    const navigate = useNavigate();
+    const [nickname, setNickname] = useState("");
 
     useEffect(() => {
         if (location.state?.loginSuccess) {
-            setShowPopup(true);
-            const timer = setTimeout(() => setShowPopup(false), 2500);
-            return () => clearTimeout(timer);
+            toast.success("🎉 Đăng nhập thành công!", {
+                position: "top-right",
+                autoClose: 2500,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+
+            // ✅ Xóa state sau khi toast để không hiện lại khi F5
+            navigate(location.pathname, { replace: true });
         }
-    }, [location.state]);
+    }, [location, navigate]);
+
+
+    useEffect(() => {
+        const name = localStorage.getItem("nickname");
+        if (name) setNickname(name);
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        toast.info("👋 Bạn đã đăng xuất", {
+            position: "top-right",
+            autoClose: 2000,
+        });
+        setTimeout(() => {
+            navigate("/login");
+        }, 1000);
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 relative">
-            {/* ✅ Popup khi đăng nhập thành công */}
-            {showPopup && (
-                <div className="fixed top-5 right-5 bg-green-500 text-white px-4 py-2 rounded shadow-md z-50 animate-bounce">
-                    Đăng nhập thành công!
-                </div>
-            )}
-
             {/* Header */}
             <header className="bg-white shadow p-4 flex justify-between items-center">
                 <div className="flex items-center space-x-2">
@@ -31,8 +51,22 @@ const HomePage = () => {
                     <h1 className="text-xl font-bold">Học Tiếng Anh</h1>
                 </div>
                 <div className="space-x-4">
-                    <Link to="/login" className="text-blue-500 hover:underline">Đăng nhập</Link>
-                    <Link to="/register" className="text-blue-500 hover:underline">Đăng ký</Link>
+                    {nickname ? (
+                        <>
+                            <span className="text-gray-700 font-semibold">👋 Xin chào, {nickname}!</span>
+                            <button
+                                className="text-red-500 hover:underline"
+                                onClick={handleLogout}
+                            >
+                                Đăng xuất
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <Link to="/login" className="text-blue-500 hover:underline">Đăng nhập</Link>
+                            <Link to="/register" className="text-blue-500 hover:underline">Đăng ký</Link>
+                        </>
+                    )}
                 </div>
             </header>
 

@@ -13,7 +13,7 @@ const Header = ({ nickname }) => {
 
             {/* Menu */}
             <nav className="flex items-center space-x-6 text-sm text-gray-700">
-                <Link to="/exercises" className="hover:text-blue-600">All exercises</Link>
+                <Link to="/topics" className="hover:text-blue-600">All exercises</Link>
                 <Link to="/top-users" className="hover:text-blue-600">Top users</Link>
 
                 {/* Dropdown giả lập */}
@@ -56,7 +56,10 @@ const Header = ({ nickname }) => {
                     <span>{nickname || "Guest"} ▾</span>
                     <div className="absolute hidden group-hover:block top-full right-0 bg-white shadow rounded-md text-gray-700 mt-1 w-40 z-10">
                         <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">Profile</Link>
-                        <Link to="/logout" className="block px-4 py-2 hover:bg-gray-100">Logout</Link>
+                        <Link to="/login" onClick={() => localStorage.clear()} className="block px-4 py-2 hover:bg-gray-100">
+                            Logout
+                        </Link>
+
                     </div>
                 </div>
 

@@ -1,20 +1,26 @@
 import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { http } from "../../api/Http"; // ✅ Dùng http thay vì axios
 
 export default function DictationPractice() {
+    const [searchParams] = useSearchParams();
+    const courseId = parseInt(searchParams.get("courseId") || "1");
     const audioRef = useRef(null);
+    const [sentences, setSentences] = useState([]);
+    const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
     const [revealedAnswer, setRevealedAnswer] = useState("");
-    const [volume, setVolume] = useState(1.0); // mặc định 100%
-    const [isMuted, setIsMuted] = useState(false);
-
     const [input, setInput] = useState("");
     const [showAnswer, setShowAnswer] = useState(false);
-    const [score, setScore] = useState(null);
+    const [volume, setVolume] = useState(1.0);
+    const [isMuted, setIsMuted] = useState(false);
+    const [playbackRate, setPlaybackRate] = useState(1.0);
     const [progress, setProgress] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [playbackRate, setPlaybackRate] = useState(1.0);
-
-    const correctText = "The quick brown fox jumps over the lazy dog.";
+    const [loading, setLoading] = useState(false);
+    const [loadingAnswer, setLoadingAnswer] = useState(false);
+    const [correctAnswer, setCorrectAnswer] = useState("");
+    const [audioUrl, setAudioUrl] = useState("");
 
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
@@ -22,13 +28,76 @@ export default function DictationPractice() {
         return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     };
 
-    const handlePlay = () => {
-        if (audioRef.current) {
-            audioRef.current.playbackRate = playbackRate;
-            audioRef.current.play();
+    // Load course data, sentences, and initial audio
+    const loadCourseData = async () => {
+        setLoading(true);
+        try {
+            const res = await http.get(`/api/get-course`, {
+                params: { courseId }
+            });
+
+            const { sentences, sentenceAudios } = res.data.result;
+
+            if (!sentences || !sentenceAudios || !sentenceAudios[0]) {
+                console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
+                return;
+            }
+
+            setSentences(sentences.map((text, i) => ({
+                correctAnswer: text,
+                audioUrl: sentenceAudios[i] || ""
+            })));
+            setCurrentSentenceIndex(0);
+            setCorrectAnswer(sentences[0]);
+            setAudioUrl(sentenceAudios[0]);
+
+            setInput("");
+            setShowAnswer(false);
+        } catch (err) {
+            console.error("Lỗi khi tải khóa học:", err);
+        } finally {
+            setLoading(false);
         }
     };
 
+    const handlePlay = () => {
+        if (audioRef.current) {
+            audioRef.current.play().catch(error => {
+                console.error("Error playing audio:", error);
+            });
+        }
+    };
+
+
+    // Pause audio
+    const handlePause = () => audioRef.current?.pause();
+
+    // Seek to a specific point in the audio
+    const handleSeek = (e) => {
+        const newProgress = parseFloat(e.target.value);
+        if (audioRef.current?.duration) {
+            audioRef.current.currentTime = (newProgress / 100) * audioRef.current.duration;
+        }
+        setProgress(newProgress);
+    };
+
+    // Change playback speed
+    const handleChangeSpeed = (rate) => {
+        setPlaybackRate(rate);
+        if (audioRef.current) {
+            audioRef.current.playbackRate = rate;
+        }
+    };
+
+    // Toggle mute
+    const toggleMute = () => {
+        if (!audioRef.current) return;
+        const newMuted = !isMuted;
+        setIsMuted(newMuted);
+        audioRef.current.volume = newMuted ? 0 : volume;
+    };
+
+    // Handle volume change
     const handleVolumeChange = (e) => {
         const vol = parseFloat(e.target.value);
         setVolume(vol);
@@ -38,118 +107,106 @@ export default function DictationPractice() {
         }
     };
 
-    const toggleMute = () => {
-        const audio = audioRef.current;
-        if (!audio) return;
+    // Check the user's input
+    const handleCheck = async () => {
+        setLoadingAnswer(true);
 
-        if (isMuted) {
-            audio.volume = volume;
-            setIsMuted(false);
-        } else {
-            audio.volume = 0;
-            setIsMuted(true);
-        }
-    };
-
-
-
-
-
-    const handlePause = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-        }
-    };
-
-    const handleCheck = () => {
-        const userInput = input.trim().toLowerCase();
-        const correct = correctText.trim().toLowerCase();
-
-        const words = correct.split(" ");
-        const userWords = userInput.split(" ");
-
-        let correctCount = 0;
-        let revealedWords = [];
-        let skipNext = false;
-
-        for (let i = 0; i < words.length; i++) {
-            if (userWords[i] === words[i]) {
-                correctCount++;
-                revealedWords.push(words[i]);
-                // cho phép hiện từ tiếp theo
-                if (i + 1 < words.length) {
-                    revealedWords.push(words[i + 1]);
-                    i++; // bỏ qua từ tiếp theo vì đã xử lý
-                }
-            } else if (skipNext) {
-                // đã xử lý trong lần đúng trước đó
-                skipNext = false;
-                continue;
-            } else {
-                revealedWords.push("*".repeat(words[i].length));
+        try {
+            const userInput = input.trim();
+            if (!userInput) {
+                setRevealedAnswer("Vui lòng nhập câu trả lời.");
+                setShowAnswer(true);
+                return;
             }
-        }
 
-        const percent = ((correctCount / words.length) * 100).toFixed(2);
-        setScore(percent);
-        setRevealedAnswer(revealedWords.join(" "));
-        setShowAnswer(true);
+            console.log("📤 Gửi câu trả lời:", userInput);
+
+            const res = await http.post(
+                `/api/check-sentence?courseId=${courseId}`,
+                userInput,
+                {
+                    headers: {
+                        "Content-Type": "text/plain"
+                    }
+                }
+            );
+
+            const result = res.data;
+            console.log("📥 Kết quả từ server:", result);
+
+            if (result.trim().toLowerCase().startsWith("correct")) {
+                setRevealedAnswer("✅ Chính xác!");
+                setShowAnswer(true);
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                loadNextSentence();
+            } else {
+                setRevealedAnswer(`❌ Sai rồi! Đáp án đúng là: "${correctAnswer}"`);
+                setShowAnswer(true);
+                await http.post(`/api/reset-progress`);
+            }
+
+
+
+        } catch (error) {
+            console.error("❌ Lỗi khi kiểm tra câu:", error);
+            setRevealedAnswer("❌ Lỗi server! Không kiểm tra được câu trả lời.");
+            setShowAnswer(true);
+        } finally {
+            setLoadingAnswer(false);
+        }
+    };
+
+    // Load next sentence and its audio
+    const loadNextSentence = () => {
+        if (currentSentenceIndex < sentences.length - 1) {
+            const nextIndex = currentSentenceIndex + 1;
+            setCurrentSentenceIndex(nextIndex);
+            setInput("");
+            setShowAnswer(false);
+
+            const next = sentences[nextIndex];
+            setCorrectAnswer(next.correctAnswer);
+            setAudioUrl(next.audioUrl);
+
+            if (audioRef.current) {
+                audioRef.current.src = next.audioUrl;
+                audioRef.current.load();
+            }
+        } else {
+            console.log("Đã hoàn thành khóa học này.");
+        }
     };
 
     useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
+        loadCourseData();
+    }, [courseId]);
 
-        const updateProgress = () => {
-            setCurrentTime(audio.currentTime);
-            setDuration(audio.duration || 0);
-            const percent = (audio.currentTime / audio.duration) * 100;
-            setProgress(percent || 0);
-        };
-
-        audio.addEventListener("timeupdate", updateProgress);
-        audio.addEventListener("loadedmetadata", () => {
-            setDuration(audio.duration);
-        });
-
-        return () => {
-            audio.removeEventListener("timeupdate", updateProgress);
-        };
-    }, []);
-
-    const handleSeek = (e) => {
-        const newProgress = parseFloat(e.target.value);
-        const audio = audioRef.current;
-        if (audio && audio.duration) {
-            audio.currentTime = (newProgress / 100) * audio.duration;
+    useEffect(() => {
+        console.log("Đã cập nhật audioUrl:", audioUrl);
+    }, [audioUrl]);
+    useEffect(() => {
+        if (duration > 0) {
+            setProgress((currentTime / duration) * 100);
         }
-        setProgress(newProgress);
-    };
+    }, [currentTime, duration]);
 
-    const handleChangeSpeed = (rate) => {
-        setPlaybackRate(rate);
-        if (audioRef.current) {
-            audioRef.current.playbackRate = rate;
-        }
-    };
 
-    const handleSkip = () => {
-        setShowAnswer(true);
-        setScore(null); // Không hiển thị điểm khi bỏ qua
-    };
+
 
     return (
         <div className="max-w-xl mx-auto mt-10 p-4 space-y-4">
             <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
 
-            {/* Âm thanh */}
-            <audio ref={audioRef} src="/src/assets/audio/dictation1.mp3" preload="auto" />
+            <audio
+                ref={audioRef}
+                src={audioUrl}
+                preload="auto"
+                onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+            />
 
-            {/* Thanh tua tiến trình */}
             <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-600 w-12">
-                    {formatTime(currentTime)}
-                </span>
+                <span className="text-sm text-gray-600 w-12">{formatTime(currentTime)}</span>
                 <input
                     type="range"
                     min="0"
@@ -158,49 +215,27 @@ export default function DictationPractice() {
                     onChange={handleSeek}
                     className="flex-grow"
                 />
-                <span className="text-sm text-gray-600 w-12 text-right">
-                    {formatTime(duration)}
-                </span>
+                <span className="text-sm text-gray-600 w-12 text-right">{formatTime(duration)}</span>
             </div>
 
             <div className="space-x-2">
-                <button
-                    onClick={handlePlay}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                    ▶️ Nghe
-                </button>
-                <button
-                    onClick={handlePause}
-                    className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                >
-                    ⏸ Dừng
-                </button>
-
+                <button onClick={handlePlay} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">▶️ Nghe</button>
+                <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">⏸ Dừng</button>
             </div>
 
-            {/* Chọn tốc độ phát & âm lượng */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
                 {[1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
                     <button
                         key={rate}
                         onClick={() => handleChangeSpeed(rate)}
-                        className={`px-3 py-1 rounded border ${
-                            playbackRate === rate
-                                ? "bg-blue-500 text-white"
-                                : "bg-white text-gray-800"
-                        }`}
+                        className={`px-3 py-1 rounded border ${playbackRate === rate ? "bg-blue-500 text-white" : "bg-white text-gray-800"}`}
                     >
                         {rate}x
                     </button>
                 ))}
-
-                {/* Biểu tượng âm lượng bấm để mute/unmute */}
                 <button onClick={toggleMute} className="text-xl ml-2">
                     {isMuted || volume === 0 ? "🔇" : "🔊"}
                 </button>
-
-                {/* Thanh chỉnh âm lượng ngắn */}
                 <input
                     type="range"
                     min="0"
@@ -219,34 +254,26 @@ export default function DictationPractice() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
             />
+
             <div className="space-x-2 mt-2">
                 <button
                     onClick={handleCheck}
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                    className={`px-4 py-2 ${loadingAnswer ? "bg-gray-500 cursor-not-allowed" : "bg-green-600"} text-white rounded hover:bg-green-700`}
+                    disabled={loadingAnswer}
                 >
-                    ✔️ Kiểm tra
-                </button>
-                <button
-                    onClick={handleSkip}
-                    className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
-                >
-                    ⏭️ Bỏ qua
+                    {loadingAnswer ? "Đang kiểm tra..." : "✔️ Kiểm tra"}
                 </button>
             </div>
 
-                {showAnswer && (
-                    <div className="bg-gray-100 p-3 rounded">
-                        <p><strong>Gợi ý đúng:</strong> {revealedAnswer}</p>
-                        {score !== null ? (
-                            <p><strong>Điểm số:</strong> {score}%</p>
-                        ) : (
-                            <p className="text-gray-600 italic">Bạn đã bỏ qua câu này.</p>
-                        )}
-                    </div>
-                )}
-
-
-
+            {showAnswer && (
+                <div className="bg-gray-100 p-3 rounded">
+                    <p><strong>Phản hồi:</strong> {revealedAnswer}</p>
                 </div>
+            )}
+
+            {loading && (
+                <div className="text-center mt-4 text-blue-600">Đang tải câu tiếp theo...</div>
+            )}
+        </div>
     );
 }

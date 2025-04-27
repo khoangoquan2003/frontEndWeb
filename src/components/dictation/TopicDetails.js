@@ -1,27 +1,19 @@
 import { useState } from 'react';
 import { FaStar } from 'react-icons/fa';
-import { ChevronDownIcon } from '@heroicons/react/24/solid';
+import { ChevronRightIcon } from '@heroicons/react/24/solid';
+import { useNavigate } from 'react-router-dom';
 
 const TopicDetails = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedLevel, setSelectedLevel] = useState("All levels");
     const [filter, setFilter] = useState("No filter");
+    const navigate = useNavigate();
 
     const sections = Array.from({ length: 8 }, (_, i) => ({
         title: `Section ${i + 1}`,
         count: 20,
-        isOpen: false,
+        id: i + 1, // sẽ dùng để truyền vào query
     }));
-
-    const [sectionStates, setSectionStates] = useState(sections);
-
-    const toggleSection = (index) => {
-        setSectionStates((prev) =>
-            prev.map((s, i) =>
-                i === index ? { ...s, isOpen: !s.isOpen } : s
-            )
-        );
-    };
 
     return (
         <div className="p-6">
@@ -61,22 +53,22 @@ const TopicDetails = () => {
                 </button>
             </div>
 
-            {/* 📚 Sections List */}
+            {/* 📚 Section List */}
             <div className="space-y-3">
-                {sectionStates.map((section, index) => (
+                {sections.map((section) => (
                     <div
-                        key={index}
-                        className="border rounded px-4 py-3 cursor-pointer flex justify-between items-center"
-                        onClick={() => toggleSection(index)}
+                        key={section.id}
+                        className="border rounded px-4 py-3 cursor-pointer flex justify-between items-center hover:bg-gray-50 transition"
+                        onClick={() => navigate(`/dictation?courseId=${section.id}`)}
                     >
                         <div className="font-semibold text-lg">
                             {section.title}{" "}
-                            <span className="text-sm font-normal ml-2">
+                            <span className="text-sm font-normal ml-2 text-gray-500">
                                 {section.count}
-                                <FaStar className="inline ml-1 text-gray-400" />
+                                <FaStar className="inline ml-1 text-yellow-400" />
                             </span>
                         </div>
-                        <ChevronDownIcon className="w-4 h-4 text-gray-600" />
+                        <ChevronRightIcon className="w-5 h-5 text-gray-600" />
                     </div>
                 ))}
             </div>

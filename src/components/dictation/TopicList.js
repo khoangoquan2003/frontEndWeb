@@ -7,7 +7,7 @@ const topics = [
         level: "A1–C1",
         lessons: 289,
         icon: "https://img.icons8.com/color/96/stories.png", // bạn thay bằng ảnh gốc nếu có
-        link: "/topics/short-stories",
+        link: "/topic-details",
         type: "audio"
     },
     {
