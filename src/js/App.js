@@ -8,10 +8,18 @@ import Footer from "../components/layout/Footer";
 import TopicList from '../components/dictation/TopicList';
 import Header from '../components/layout/Header';
 import TopicDetails from "../components/dictation/TopicDetails";
-import Oauth2Success from "../page/Oauth2Success";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DictationPage from "../components/dictation/DictationPage";
+import Oauth2RedirectHandler from "../page/OAuth2RedirectHandler";
+import TopUsers from "../page/TopUsers";
+import Profile from '../page/Profile'; // đường dẫn tùy nơi bạn đặt
+import ChangePassword from '../page/ChangePasswordForm'; // đường dẫn tùy nơi bạn đặt
+import ChangeEmail from '../page/ChangeEmailForm'; // đường dẫn tùy nơi bạn đặt
+import Notifications from "../page/Notifications";
+import Comments from "../page/Comments";
+import Favourites from "../page/Favourites";
+
 
 
 
@@ -23,7 +31,11 @@ const Layout = ({ children, nickname }) => {
     return (
         <div className="flex flex-col min-h-screen">
             {!hideHeaderFooter && <Header nickname={nickname} />}
-            <div className="flex-grow">{children}</div>
+
+            <main className="flex-grow">
+                {children}
+            </main>
+
             {!hideHeaderFooter && <Footer />}
         </div>
     );
@@ -55,9 +67,16 @@ function AppWrapper() {
 
             <Layout nickname={nickname}>
                 <Routes>
-                    <Route path="/dictation" element={<DictationPage />} />
+                    <Route path="/changePassword" element={<ChangePassword />} />
+                    <Route path="/changeMail" element={<ChangeEmail />} />
+                    <Route path="/favourites" element={<Favourites />} />
 
-                    <Route path="/oauth2/success" element={<Oauth2Success />} />
+                    <Route path="/dictation" element={<DictationPage />} />
+                    <Route path="/oauth2/redirect" element={<Oauth2RedirectHandler />} />
+                    <Route path="/top-users" element={<TopUsers />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/comments" element={<Comments />} />
                     <Route path="/topic-details" element={<TopicDetails />} />
                     <Route path="/" element={<Login />} />
                     <Route path="/login" element={<Login />} />
