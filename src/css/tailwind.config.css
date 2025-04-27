@@ -1,0 +1,5 @@
+.footer-link {
+    text-transform: uppercase; /* Chuyển toàn bộ chữ thành chữ hoa */
+    display: block; /* Chuyển mỗi liên kết thành một khối riêng biệt */
+    white-space: pre-line; /* Cho phép xuống dòng */
+}
