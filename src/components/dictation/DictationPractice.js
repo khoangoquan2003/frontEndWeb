@@ -4,8 +4,10 @@ import { http } from "../../api/Http";
 import TranslationBox from './TranslationBox';
 import PronunciationBox from './PronunciationBox';
 import CommentBox from './CommentBox';
+import Popup from "../Popup/Popup";
 
 export default function DictationPractice() {
+    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [searchParams] = useSearchParams();
     const courseId = parseInt(searchParams.get("courseId") || "1");
     const audioRef = useRef(null);
@@ -30,6 +32,20 @@ export default function DictationPractice() {
         words: []
     });
     const [comments, setComments] = useState([]);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false); // Track if audio is playing
+    const handleDownload = (audioUrl) => {
+        if (!audioUrl) {
+            console.error("Không có URL âm thanh để tải về.");
+            return;
+        }
+
+        // Tạo thẻ <a> để trigger việc tải file
+        const link = document.createElement('a');
+        link.href = audioUrl;
+        link.download = audioUrl.split("/").pop(); // Đặt tên file tải về từ URL (hoặc bạn có thể đặt tên khác nếu cần)
+        link.click();
+    };
 
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
@@ -79,15 +95,23 @@ export default function DictationPractice() {
         }
     };
 
+    // Play the audio
     const handlePlay = () => {
         if (audioRef.current) {
             audioRef.current.play().catch(error => {
                 console.error("Error playing audio:", error);
             });
+            setIsPlaying(true);
         }
     };
 
-    const handlePause = () => audioRef.current?.pause();
+    // Pause the audio
+    const handlePause = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
+    };
 
     const handleSeek = (e) => {
         const newProgress = parseFloat(e.target.value);
@@ -209,9 +233,7 @@ export default function DictationPractice() {
         <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
             <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
 
-            {/* Audio and Info side by side */}
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                {/* Audio + Textarea */}
                 <div className="flex-1 space-y-3">
                     <audio
                         ref={audioRef}
@@ -220,52 +242,83 @@ export default function DictationPractice() {
                         onLoadedMetadata={(e) => setDuration(e.target.duration)}
                         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
                     />
-
-                    {/* Timebar */}
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 w-12">{formatTime(currentTime)}</span>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={progress}
-                            onChange={handleSeek}
-                            className="flex-grow"
-                        />
-                        <span className="text-sm text-gray-600 w-12 text-right">{formatTime(duration)}</span>
-                    </div>
-
-                    {/* Controls */}
-                    <div className="space-x-2">
-                        <button onClick={handlePlay} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">▶️ Nghe</button>
-                        <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">⏸ Dừng</button>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {[1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
+                    <div className="flex items-center border-2 border p-1 rounded-full justify-between">
+                        <div className="flex items-center gap-3 mr-2">
                             <button
-                                key={rate}
-                                onClick={() => handleChangeSpeed(rate)}
-                                className={`px-3 py-1 rounded border ${playbackRate === rate ? "bg-blue-500 text-white" : "bg-white text-gray-800"}`}
+                                onClick={isPlaying ? handlePause : handlePlay}
+                                className="w-10 h-10 flex justify-center items-center border text-white rounded-full"
                             >
-                                {rate}x
+                                {isPlaying ? "⏸" : "▶️"}
                             </button>
-                        ))}
-                        <button onClick={toggleMute} className="text-xl ml-2">
-                            {isMuted || volume === 0 ? "🔇" : "🔊"}
-                        </button>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={isMuted ? 0 : volume}
-                            onChange={handleVolumeChange}
-                            className="w-28"
-                        />
+                        </div>
+
+                        <div className="flex flex-1 items-center gap-1">
+                            <span className="text-sm text-gray-600 w-10">{formatTime(currentTime)}</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={progress}
+                                onChange={handleSeek}
+                                className="flex-grow"
+                            />
+                            <span className="text-sm text-gray-600 w-10 text-right">{formatTime(duration)}</span>
+                        </div>
+
+                        {/* Volume control */}
+                        <div className="mx-2 relative">
+                            <button
+                                onClick={() => setShowVolumeSlider(prev => !prev)}
+                                className="px-3 py-2 bg-gray-300 rounded-full text-xl hover:bg-gray-400"
+                            >
+                                {isMuted || volume === 0 ? "🔇" : "🔊"}
+                            </button>
+                            {showVolumeSlider && (
+                                <div className="absolute top-12 right-0 bg-white shadow-md rounded-md px-3 py-2 w-32">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value={isMuted ? 0 : volume}
+                                        onChange={handleVolumeChange}
+                                        className="w-full"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 3-dot menu for playback speed and Download */}
+                        <div className="mx-2 relative">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="px-3 py-2 bg-gray-300 rounded-full text-xl hover:bg-gray-400"
+                            >
+                                ⋮
+                            </button>
+                            {showMenu && (
+                                <div className="absolute top-12 right-0 bg-white shadow-md rounded-md w-32 p-2 space-y-2">
+                                    {[1.0, 1.25, 1.5, 2.0].map(rate => (
+                                        <button
+                                            key={rate}
+                                            onClick={() => handleChangeSpeed(rate)}
+                                            className={`w-full text-left px-2 py-1 ${playbackRate === rate ? "bg-blue-500 text-white" : "text-gray-700"}`}
+                                        >
+                                            {rate}x
+                                        </button>
+                                    ))}
+                                    {/* New Download button */}
+                                    <button
+                                        onClick={() => handleDownload(audioUrl)}
+                                        className="w-full text-left px-2 py-1 text-gray-700 hover:bg-gray-200"
+                                    >
+                                        📥 Tải xuống
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* 👇 Textarea gọn bên dưới audio */}
                     <textarea
                         rows={4}
                         placeholder="Gõ lại đoạn bạn vừa nghe..."
@@ -298,12 +351,8 @@ export default function DictationPractice() {
                     )}
                 </div>
 
-                {/* Info boxes */}
                 <div className="flex-1 grid gap-4 w-full">
-                    {/* TranslationBox with Language Dropdown */}
                     <TranslationBox translation={translation || { en: "No translation available" }} />
-
-                    {/* PronunciationBox with clickable words for pronunciation */}
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">🔊 Phát âm</h2>
                         <PronunciationBox
@@ -311,15 +360,15 @@ export default function DictationPractice() {
                             wordPronunciations={pronunciation.words}
                             onWordClick={playWordPronunciation}
                         />
+                        {/* Integrating Popup here */}
+                        <Popup />
                     </div>
 
-                    {/* CommentBox to display comments */}
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
                         <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]} />
                     </div>
                 </div>
-
             </div>
 
             {loading && (
@@ -327,4 +376,5 @@ export default function DictationPractice() {
             )}
         </div>
     );
+
 }

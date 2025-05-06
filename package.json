@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@floating-ui/react": "^0.27.8",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^7.0.2",
     "@testing-library/dom": "^10.4.0",
