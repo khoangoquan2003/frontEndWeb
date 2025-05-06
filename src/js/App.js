@@ -26,7 +26,7 @@ import Favourites from "../page/Favourites";
 
 const Layout = ({ children, nickname }) => {
     const location = useLocation();
-    const hideHeaderFooter = ["/", "/login", "/register"].includes(location.pathname);
+    const hideHeaderFooter = ["/dictation", "/login", "/register"].includes(location.pathname);
 
     return (
         <div className="flex flex-col min-h-screen">

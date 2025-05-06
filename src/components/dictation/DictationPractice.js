@@ -135,14 +135,14 @@ export default function DictationPractice() {
             console.log("📥 Kết quả từ server:", result);
 
             if (result.trim().toLowerCase().startsWith("correct")) {
-                setRevealedAnswer("✅ Chính xác!");
+                setRevealedAnswer(result);
                 setShowAnswer(true);
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 loadNextSentence();
             } else {
-                setRevealedAnswer(`❌ Sai rồi! Đáp án đúng là: "${correctAnswer}"`);
+                setRevealedAnswer(result);
                 setShowAnswer(true);
-                await http.post(`/api/reset-progress`);
+
             }
 
 
