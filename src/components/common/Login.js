@@ -6,7 +6,7 @@ import {AuthApi} from "../../api/Auth";
 
 const Login = () => {
     const navigate = useNavigate();
-    const [username, setUserName] = useState('');
+    const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
@@ -18,7 +18,7 @@ const Login = () => {
 
         try {
             const response = await axios.post("http://localhost:8080/auth/test-log-in", {
-                username,
+                userName,
                 password
             }, {
                 headers: { "Content-Type": "application/json" }
@@ -44,15 +44,12 @@ const Login = () => {
         }
     };
 
-    useEffect(() => {
-        AuthApi.login("123", "123").then(resp => {
-            const nickName = resp.data.result.nickName;
-            console.log("Nickname:", nickName);
-        });
-    }, []);
-
-
-
+    // useEffect(() => {
+    //     AuthApi.login("123", "123").then(resp => {
+    //         const nickName = resp.data.result.nickName;
+    //         console.log("Nickname:", nickName);
+    //     });
+    // }, []);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 relative">
@@ -85,7 +82,7 @@ const Login = () => {
                         type="text"
                         placeholder="Username or Email"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
-                        value={username}
+                        value={userName}
                         onChange={(e) => setUserName(e.target.value)}
                         required
                     />
