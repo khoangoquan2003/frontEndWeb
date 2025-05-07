@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { http } from "../../api/Http";
+import {useRef, useState, useEffect} from "react";
+import {useSearchParams} from "react-router-dom";
+import {http} from "../../api/Http";
 import TranslationBox from './TranslationBox';
 import PronunciationBox from './PronunciationBox';
 import CommentBox from './CommentBox';
@@ -24,7 +24,7 @@ export default function DictationPractice() {
     const [loadingAnswer, setLoadingAnswer] = useState(false);
     const [correctAnswer, setCorrectAnswer] = useState("");
     const [audioUrl, setAudioUrl] = useState("");
-    const [translation, setTranslation] = useState({ en: "", vi: "" });
+    const [translation, setTranslation] = useState({en: "", vi: ""});
     const [pronunciation, setPronunciation] = useState({
         sentence: "",
         words: []
@@ -37,14 +37,15 @@ export default function DictationPractice() {
         return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     };
 
+
     const loadCourseData = async () => {
         setLoading(true);
         try {
             const res = await http.get(`/api/get-course`, {
-                params: { courseId }
+                params: {courseId}
             });
 
-            const { sentences, sentenceAudios, sentencePronunciations } = res.data.result;
+            const {sentences, sentenceAudios} = res.data.result;
 
             if (!sentences || !sentenceAudios || !sentenceAudios[0]) {
                 console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
@@ -53,22 +54,11 @@ export default function DictationPractice() {
 
             setSentences(sentences.map((text, i) => ({
                 correctAnswer: text,
-                audioUrl: sentenceAudios[i] || "",
-                pronunciation: sentencePronunciations[i] || []
+                audioUrl: sentenceAudios[i] || ""
             })));
-
-            const firstSentence = sentences[0];
-            setCorrectAnswer(firstSentence);
+            setCurrentSentenceIndex(0);
+            setCorrectAnswer(sentences[0]);
             setAudioUrl(sentenceAudios[0]);
-
-            // Set pronunciation for the first sentence
-            setPronunciation({
-                sentence: firstSentence,
-                words: sentencePronunciations[0].map(word => ({
-                    word: word.text,
-                    audioUrl: word.audioUrl
-                }))
-            });
 
             setInput("");
             setShowAnswer(false);
@@ -86,6 +76,7 @@ export default function DictationPractice() {
             });
         }
     };
+
 
     const handlePause = () => audioRef.current?.pause();
 
@@ -134,7 +125,7 @@ export default function DictationPractice() {
             const res = await http.post(
                 `/api/check-sentence?courseId=${courseId}`,
                 userInput,
-                { headers: { "Content-Type": "text/plain" } }
+                {headers: {"Content-Type": "text/plain"}}
             );
 
             const result = res.data;
@@ -237,8 +228,12 @@ export default function DictationPractice() {
 
                     {/* Controls */}
                     <div className="space-x-2">
-                        <button onClick={handlePlay} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">▶️ Nghe</button>
-                        <button onClick={handlePause} className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">⏸ Dừng</button>
+                        <button onClick={handlePlay}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">▶️ Nghe
+                        </button>
+                        <button onClick={handlePause}
+                                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">⏸ Dừng
+                        </button>
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap">
@@ -301,7 +296,7 @@ export default function DictationPractice() {
                 {/* Info boxes */}
                 <div className="flex-1 grid gap-4 w-full">
                     {/* TranslationBox with Language Dropdown */}
-                    <TranslationBox translation={translation || { en: "No translation available" }} />
+                    <TranslationBox translation={translation || {en: "No translation available"}}/>
 
                     {/* PronunciationBox with clickable words for pronunciation */}
                     <div className="border p-3 rounded bg-white shadow">
@@ -316,7 +311,7 @@ export default function DictationPractice() {
                     {/* CommentBox to display comments */}
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]} />
+                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]}/>
                     </div>
                 </div>
 
