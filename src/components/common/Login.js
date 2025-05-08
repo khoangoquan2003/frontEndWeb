@@ -26,10 +26,12 @@ const Login = () => {
 
             const token = response.data?.result?.token;
             const nickname = response.data?.result?.nickName;
-
+            const userId = response.data?.result?.userId;
             if (token) {
                 localStorage.setItem("token", token);
                 localStorage.setItem("nickname", nickname);
+                localStorage.setItem("userId", userId);
+
 
                 // ❌ Không cần setSuccessMessage nữa
                 // ✅ Chuyển qua navigate để truyền loginSuccess
