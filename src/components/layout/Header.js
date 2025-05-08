@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaSun } from 'react-icons/fa';
 import { toast } from 'react-toastify'; // Import toast
+import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaSun, FaCog } from 'react-icons/fa';
 
 const Header = ({ nickname }) => {
     const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
@@ -9,6 +9,15 @@ const Header = ({ nickname }) => {
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
     const navigate = useNavigate(); // Để sử dụng navigate sau khi logout
+    const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+    const [theme, setTheme] = useState("light");
+
+    const toggleTheme = (selectedTheme) => {
+        setTheme(selectedTheme);
+        document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
+        setIsThemeDropdownOpen(false);
+    };
+
 
     // Hàm giúp mở/đóng dropdown khi click
     const handleDropdownToggle = (dropdown) => {
@@ -127,10 +136,33 @@ const Header = ({ nickname }) => {
                     )}
                 </div>
 
-                {/* Light/Dark toggle */}
-                <div className="cursor-pointer hover:text-blue-600">
-                    <FaSun />
+                {/* Theme settings dropdown */}
+                <div className="relative">
+                    <div
+                        className="cursor-pointer hover:text-blue-600"
+                        onClick={() => setIsThemeDropdownOpen(!isThemeDropdownOpen)}
+                    >
+                        <FaCog />
+                    </div>
+                    {isThemeDropdownOpen && (
+                        <div className="absolute right-0 mt-1 bg-white shadow rounded-md text-gray-700 w-32 z-10 dark:bg-gray-800 dark:text-white">
+                            <button
+                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                onClick={() => toggleTheme('light')}
+                            >
+                                🌞 Light Mode
+                            </button>
+                            <button
+                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                onClick={() => toggleTheme('dark')}
+                            >
+                                🌙 Dark Mode
+                            </button>
+                        </div>
+                    )}
                 </div>
+
+
             </div>
         </header>
     );

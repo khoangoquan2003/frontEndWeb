@@ -1,24 +1,19 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
+import AudioPlayer from "./AudioPlayerPage"; // Import AudioPlayer
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
     const audioRef = useRef(null);
-    const [isPlaying, setIsPlaying] = useState(false); // Trạng thái play/pause
+    const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [activeIndex, setActiveIndex] = useState(-1);
-    const [playbackRate, setPlaybackRate] = useState(1);  // Tốc độ phát
-    const [volume, setVolume] = useState(1);  // Âm lượng
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);  // Trạng thái mở menu settings
+    const [playbackRate, setPlaybackRate] = useState(1);
+    const [volume, setVolume] = useState(1);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const transcriptData = [
-        { text: "Hello everyone, welcome to today's dictation practice.", start: 0, end: 4 },
-        { text: "Please listen carefully and write down what you hear.", start: 4, end: 8 },
-        { text: "Let's start with some simple sentences.", start: 8, end: 12 },
-        { text: "Make sure to check your spelling and punctuation.", start: 12, end: 16 },
-        { text: "Good luck and have fun!", start: 16, end: 20 },
-        // You can repeat or add more sentences here
         { text: "Hello everyone, welcome to today's dictation practice.", start: 0, end: 4 },
         { text: "Please listen carefully and write down what you hear.", start: 4, end: 8 },
         { text: "Let's start with some simple sentences.", start: 8, end: 12 },
@@ -28,15 +23,11 @@ export default function DictationPage() {
 
     const handlePlayPauseStop = () => {
         if (isPlaying) {
-            audioRef.current.pause();  // Pause khi đang chơi
-            setIsPlaying(false);  // Đặt trạng thái là dừng
+            audioRef.current.pause();
+            setIsPlaying(false);
         } else {
-            if (audioRef.current.currentTime === 0) {
-                audioRef.current.play();  // Play khi chưa phát
-            } else {
-                audioRef.current.play();  // Play khi đã dừng
-            }
-            setIsPlaying(true);  // Đặt trạng thái là đang chơi
+            audioRef.current.play();
+            setIsPlaying(true);
         }
     };
 
@@ -50,7 +41,7 @@ export default function DictationPage() {
 
     const handleDownload = () => {
         const link = document.createElement("a");
-        link.href = "/audio/sample.mp3"; // Địa chỉ âm thanh bạn muốn tải
+        link.href = "/audio/sample.mp3";
         link.download = "dictation_audio.mp3";
         link.click();
     };
@@ -73,7 +64,6 @@ export default function DictationPage() {
         const update = () => {
             setCurrentTime(audio.currentTime);
 
-            // Xác định dòng nào nên được highlight
             const currentIndex = transcriptData.findIndex(
                 (line) => audio.currentTime >= line.start && audio.currentTime < line.end
             );
@@ -98,41 +88,55 @@ export default function DictationPage() {
     };
 
     return (
-        <div className="max-w-5xl mx-auto p-4">
-            {/* Thanh chọn trang */}
+        <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
+            {/* Page Navigation */}
             <div className="flex justify-center mb-6 space-x-4">
                 <button
                     onClick={() => setCurrentPage("dictation")}
                     className={`px-4 py-2 rounded ${currentPage === "dictation" ? "bg-blue-600 text-white" : "bg-gray-300"}`}
                 >
-                    Dictation
+                    Practice
                 </button>
                 <button
                     onClick={() => setCurrentPage("transcript")}
                     className={`px-4 py-2 rounded ${currentPage === "transcript" ? "bg-blue-600 text-white" : "bg-gray-300"}`}
                 >
-                    Full Transcript
+                    Full transcript
                 </button>
             </div>
 
-            {currentPage === "dictation" && <DictationPractice />}
+            <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
 
+            {/* Conditional Rendering */}
+            {currentPage === "dictation" && (
+                <div className="flex flex-col items-start space-y-4">
+                    <DictationPractice
+                        audioRef={audioRef}
+                        isPlaying={isPlaying}
+                        setIsPlaying={setIsPlaying}
+                        handlePlayPauseStop={handlePlayPauseStop}
+                        volume={volume}
+                        setVolume={setVolume}
+                        playbackRate={playbackRate}
+                        setPlaybackRate={setPlaybackRate}
+                        currentPage={currentPage}          // ✅ Thêm dòng này
+                        setCurrentPage={setCurrentPage}    // ✅ Thêm dòng này
+                    />
+                </div>
+            )}
+
+            {/* Full Transcript Page */}
             {currentPage === "transcript" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded bg-gray-100">
-                    {/* Bên trái: Audio Control + Điều chỉnh tốc độ và âm lượng */}
+                    {/* Left: Audio Control + Adjust playback speed and volume */}
                     <div className="w-full flex flex-col space-y-3">
                         <audio ref={audioRef} src="/audio/sample.mp3" />
-
-                        {/* Các nút điều khiển + Dấu ba chấm */}
                         <div className="flex items-center justify-between mb-2 space-x-3">
-                            {/* Nút Play/Pause */}
                             <div className="flex space-x-2">
                                 <button onClick={handlePlayPauseStop} title={isPlaying ? "Pause" : "Play"} className="text-xl">
                                     {isPlaying ? "❚❚" : "▶"}
                                 </button>
                             </div>
-
-                            {/* Thanh thời gian */}
                             <div className="flex-1 flex items-center space-x-2">
                                 <input
                                     type="range"
@@ -143,41 +147,29 @@ export default function DictationPage() {
                                     className="flex-1 accent-blue-600 w-2/3"
                                 />
                             </div>
-
-                            {/* Nút ba chấm */}
                             <button
                                 onClick={() => setIsSettingsOpen(prev => !prev)}
-                                className="text-2xl p-3 transform rotate-90"  // Added padding for a larger button
+                                className="text-2xl p-3 transform rotate-90"
                                 title="Settings"
                             >
                                 &#8230;
                             </button>
-
                         </div>
-
-                        {/* Di chuyển thời gian lên trên */}
                         <div className="flex justify-between text-sm text-gray-700 mt-1">
                             <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
                         </div>
 
-                        {/* Nếu menu settings được mở */}
                         {isSettingsOpen && (
                             <div className="flex flex-col items-start absolute bg-white p-3 border rounded mt-1 space-y-2">
-                                <button
-                                    onClick={handleDownload}
-                                    className="text-sm"
-                                    title="Download"
-                                >
+                                <button onClick={handleDownload} className="text-sm" title="Download">
                                     Download
                                 </button>
                                 <div className="flex space-x-2">
-                                    {/* Điều chỉnh tốc độ */}
                                     <button onClick={() => handlePlaybackRateChange(1)} className="text-sm" title="Normal Speed">1x</button>
                                     <button onClick={() => handlePlaybackRateChange(1.5)} className="text-sm" title="1.5x Speed">1.5x</button>
                                     <button onClick={() => handlePlaybackRateChange(2)} className="text-sm" title="2x Speed">2x</button>
                                 </div>
 
-                                {/* Điều chỉnh âm lượng */}
                                 <div className="flex items-center space-x-2">
                                     <button onClick={() => audioRef.current.muted = !audioRef.current.muted} className="text-sm" title="Mute/Unmute">
                                         🔊
@@ -197,18 +189,15 @@ export default function DictationPage() {
                         )}
                     </div>
 
-                    {/* Bên phải: Transcript */}
+                    {/* Right: Transcript */}
                     <div>
                         <h2 className="text-xl font-semibold mb-4">📝 Transcript</h2>
                         <div className="h-64 overflow-y-auto bg-white p-3 border rounded space-y-2">
-                            {/* Scrollable area */}
                             <ul className="list-disc list-inside space-y-2 text-gray-700">
                                 {transcriptData.map((line, idx) => (
                                     <li
                                         key={idx}
-                                        className={`transition-all duration-200 ${
-                                            idx === activeIndex ? "bg-yellow-100 font-semibold rounded px-2 py-1" : ""
-                                        }`}
+                                        className={`transition-all duration-200 ${idx === activeIndex ? "bg-yellow-100 font-semibold rounded px-2 py-1" : ""}`}
                                     >
                                         {line.text}
                                     </li>
@@ -218,6 +207,9 @@ export default function DictationPage() {
                     </div>
                 </div>
             )}
+
+            {/* AudioPlayer Component at the bottom */}
+            <AudioPlayer /> {/* Call the AudioPlayer at the bottom */}
         </div>
     );
 }

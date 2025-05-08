@@ -2,71 +2,43 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const topics = [
-    {
-        title: "Short Stories",
-        level: "A1–C1",
-        lessons: 289,
-        icon: "https://img.icons8.com/color/96/stories.png", // bạn thay bằng ảnh gốc nếu có
-        link: "/topic-details",
-        type: "audio"
-    },
-    {
-        title: "TOEIC Listening",
-        level: "A2–C1",
-        lessons: 600,
-        icon: "https://img.icons8.com/color/96/toeic.png",
-        link: "/topics/toeic",
-        type: "audio"
-    },
-    {
-        title: "Stories for Kids",
-        level: "A2–B2",
-        lessons: 13,
-        icon: "https://img.icons8.com/color/96/fairy-tale.png",
-        link: "/topics/kids",
-        type: "video"
-    },
-    {
-        title: "TED",
-        level: "C1–C2",
-        lessons: 71,
-        icon: "https://img.icons8.com/color/96/ted.png",
-        link: "/topics/ted",
-        type: "video"
-    },
-    {
-        title: "Numbers",
-        level: "A1",
-        lessons: 9,
-        icon: "https://img.icons8.com/color/96/numbers.png",
-        link: "/topics/numbers",
-        type: "audio"
-    },
-    // Thêm các topic khác ở đây...
+    { title: "Short Stories", level: "A1–C1", lessons: 289, icon: "/imgs/1.1.jpg", link: "/topic-details", type: "audio" },
+    { title: "Conversations", level: "A1–B1", lessons: 100, icon: "/imgs/1.2.jpg", link: "/topic-details", type: "audio" },
+    { title: "Stories for Kids", level: "A2–B2", lessons: 13, icon: "/imgs/1.3.jpeg", link: "/topic-details", type: "video" },
+    { title: "TOEIC Listening", level: "A2–C1", lessons: 600, icon: "/imgs/1.4.jpg", link: "/topic-details", type: "audio" },
+    { title: "IELTS Listening", level: "B1–C2", lessons: 328, icon: "/imgs/1.5.jpg", link: "/topic-details", type: "audio" },
+    { title: "YouTube", level: "B1–C2", lessons: 164, icon: "/imgs/1.6.jpg", link: "/topic-details", type: "video" },
+    { title: "News", level: "B1–C1", lessons: 144, icon: "/imgs/1.1.jpg", link: "/topic-details", type: "audio" },
+    { title: "TED", level: "C1–C2", lessons: 76, icon: "/imgs/1.2.jpg", link: "/topic-details", type: "video" },
+    { title: "TOEFL Listening", level: "B1–C2", lessons: 54, icon: "/imgs/1.3.jpeg", link: "/topic-details", type: "audio" },
+    { title: "IPA", level: "A1", lessons: 42, icon: "/imgs/1.4.jpg", link: "/topic-details", type: "audio" },
+    { title: "Numbers", level: "A1", lessons: 9, icon: "/imgs/1.5.jpg", link: "/topic-details", type: "audio" },
+    { title: "Spelling Names", level: "A1", lessons: 6, icon: "/imgs/1.6.jpg", link: "/topic-details", type: "audio" },
 ];
+
 
 const TopicList = () => {
     return (
-        <div className="p-6 bg-gray-100 min-h-screen">
-            <h1 className="text-3xl font-bold mb-6 text-center">All Topics</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {topics.map((topic, index) => (
-                    <div key={index} className="bg-white shadow-md p-4 rounded-lg flex items-center space-x-4">
-                        <img src={topic.icon} alt={topic.title} className="w-16 h-16 rounded-md" />
-                        <div>
-                            <Link to={topic.link} className="text-lg font-bold text-blue-600 hover:underline">{topic.title}</Link>
-                            <p className="text-sm text-gray-600">Levels: {topic.level}</p>
-                            <div className="text-sm text-gray-500 flex items-center space-x-1">
-                                {topic.type === 'audio' ? (
-                                    <span>🎧</span>
-                                ) : (
-                                    <span>🎥</span>
-                                )}
-                                <span>{topic.lessons} lessons</span>
+        <div className="py-12 bg-gray-100 min-h-screen">
+            <div className="max-w-screen-xl mx-auto px-6">
+                <h1 className="text-4xl font-bold mb-10 text-center text-gray-800">All Topics</h1>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {topics.map((topic, index) => (
+                        <div key={index} className="bg-white shadow-lg p-6 rounded-xl flex items-center space-x-6 transition hover:shadow-xl">
+                            <img src={topic.icon} alt={topic.title} className="w-20 h-20 rounded-md object-cover" />
+                            <div>
+                                <Link to={topic.link} className="text-xl font-semibold text-blue-700 hover:underline">
+                                    {topic.title}
+                                </Link>
+                                <p className="text-sm text-gray-600 mt-1">Levels: {topic.level}</p>
+                                <div className="text-sm text-gray-500 flex items-center space-x-1 mt-1">
+                                    <span>{topic.type === 'audio' ? '🎧' : '🎥'}</span>
+                                    <span>{topic.lessons} lessons</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
     );
