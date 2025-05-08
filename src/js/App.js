@@ -26,7 +26,7 @@ import Favourites from "../page/Favourites";
 
 const Layout = ({ children, nickname }) => {
     const location = useLocation();
-    const hideHeaderFooter = ["/dictation", "/login", "/register"].includes(location.pathname);
+    const hideHeaderFooter = [ "/login", "/register"].includes(location.pathname);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -53,7 +53,6 @@ function AppWrapper() {
 
     return (
         <Router>
-            {/* Toast dùng toàn app */}
             <ToastContainer
                 position="top-right"
                 autoClose={2500}
@@ -65,27 +64,36 @@ function AppWrapper() {
                 pauseOnHover
             />
 
-            <Layout nickname={nickname}>
-                <Routes>
-                    <Route path="/changePassword" element={<ChangePassword />} />
-                    <Route path="/changeMail" element={<ChangeEmail />} />
-                    <Route path="/favourites" element={<Favourites />} />
+            <Routes>
+                {/* Routes KHÔNG có Header/Footer */}
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
-                    <Route path="/dictation" element={<DictationPage />} />
-                    <Route path="/oauth2/redirect" element={<Oauth2RedirectHandler />} />
-                    <Route path="/top-users" element={<TopUsers />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/comments" element={<Comments />} />
-                    <Route path="/topic-details" element={<TopicDetails />} />
-                    <Route path="/" element={<Login />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/homepage" element={<HomePage />} />
-                    <Route path="/topics" element={<TopicList />} />
-                    <Route path="/dictation" element={<DictationPractice />} />
-                </Routes>
-            </Layout>
+                {/* Routes CÓ Header/Footer */}
+                <Route
+                    path="*"
+                    element={
+                        <Layout nickname={nickname}>
+                            <Routes>
+                                <Route path="/homepage" element={<HomePage />} />
+                                <Route path="/dictation" element={<DictationPractice />} />
+                                <Route path="/dictation-page" element={<DictationPage />} />
+                                <Route path="/oauth2/redirect" element={<Oauth2RedirectHandler />} />
+                                <Route path="/top-users" element={<TopUsers />} />
+                                <Route path="/profile" element={<Profile />} />
+                                <Route path="/changePassword" element={<ChangePassword />} />
+                                <Route path="/changeMail" element={<ChangeEmail />} />
+                                <Route path="/favourites" element={<Favourites />} />
+                                <Route path="/notifications" element={<Notifications />} />
+                                <Route path="/comments" element={<Comments />} />
+                                <Route path="/topics" element={<TopicList />} />
+                                <Route path="/topic-details" element={<TopicDetails />} />
+                            </Routes>
+                        </Layout>
+                    }
+                />
+            </Routes>
         </Router>
     );
 }
