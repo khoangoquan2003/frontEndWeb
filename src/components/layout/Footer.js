@@ -95,8 +95,7 @@ const Footer = () => {
             </div>
 
 
-            {/* Footer Bottom */}
-            <div className="mt-8 text-center text-black text-base bg-amber-100 py-2 border-t border-gray-400">
+            <div className="mt-8 text-center text-white text-base bg-black py-3">
                 © dailydictation.com · since 2019
             </div>
 

@@ -4,8 +4,13 @@ import {http} from "../../api/Http";
 import TranslationBox from './TranslationBox';
 import PronunciationBox from './PronunciationBox';
 import CommentBox from './CommentBox';
+import Popup from "../Popup/Popup";
+import AudioPlayerPage  from "./AudioPlayerPage";
 
 export default function DictationPractice() {
+    const [currentPage, setCurrentPage] = useState("dictation");
+
+    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [searchParams] = useSearchParams();
     const courseId = parseInt(searchParams.get("courseId") || "1");
     const audioRef = useRef(null);
@@ -45,8 +50,8 @@ export default function DictationPractice() {
                 params: {courseId}
             });
 
-
             const {sentences, sentenceAudios} = res.data.result;
+
             if (!sentences || !sentenceAudios || !sentenceAudios[0]) {
                 console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
                 return;
@@ -78,10 +83,8 @@ export default function DictationPractice() {
     };
 
 
-// Pause audio
     const handlePause = () => audioRef.current?.pause();
 
-// Seek to a specific point in the audio
     const handleSeek = (e) => {
         const newProgress = parseFloat(e.target.value);
         if (audioRef.current?.duration) {
@@ -90,7 +93,6 @@ export default function DictationPractice() {
         setProgress(newProgress);
     };
 
-// Change playback speed
     const handleChangeSpeed = (rate) => {
         setPlaybackRate(rate);
         if (audioRef.current) {
@@ -98,7 +100,6 @@ export default function DictationPractice() {
         }
     };
 
-// Toggle mute
     const toggleMute = () => {
         if (!audioRef.current) return;
         const newMuted = !isMuted;
@@ -106,7 +107,6 @@ export default function DictationPractice() {
         audioRef.current.volume = newMuted ? 0 : volume;
     };
 
-// Handle volume change
     const handleVolumeChange = (e) => {
         const vol = parseFloat(e.target.value);
         setVolume(vol);
@@ -116,7 +116,6 @@ export default function DictationPractice() {
         }
     };
 
-// Check the user's input
     const handleCheck = async () => {
         setLoadingAnswer(true);
 
@@ -128,25 +127,16 @@ export default function DictationPractice() {
                 return;
             }
 
-            console.log("📤 Gửi câu trả lời:", userInput);
-
             const res = await http.post(
                 `/api/check-sentence?courseId=${courseId}`,
                 userInput,
-                {
-                    headers: {
-                        "Content-Type": "text/plain"
-                    }
-                }
+                {headers: {"Content-Type": "text/plain"}}
             );
 
             const result = res.data;
-            console.log("📥 Kết quả từ server:", result);
 
             if (result.trim().toLowerCase().startsWith("correct")) {
                 setRevealedAnswer(result);
-                console.log(result)
-
                 setShowAnswer(true);
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 loadNextSentence();
@@ -155,7 +145,6 @@ export default function DictationPractice() {
                 setShowAnswer(true);
 
             }
-
 
         } catch (error) {
             console.error("❌ Lỗi khi kiểm tra câu:", error);
@@ -166,7 +155,6 @@ export default function DictationPractice() {
         }
     };
 
-// Load next sentence and its audio
     const loadNextSentence = () => {
         if (currentSentenceIndex < sentences.length - 1) {
             const nextIndex = currentSentenceIndex + 1;
@@ -178,6 +166,15 @@ export default function DictationPractice() {
             setCorrectAnswer(next.correctAnswer);
             setAudioUrl(next.audioUrl);
 
+            // Set pronunciation for the next sentence
+            setPronunciation({
+                sentence: next.correctAnswer,
+                words: next.pronunciation.map(word => ({
+                    word: word.text,
+                    audioUrl: word.audioUrl
+                }))
+            });
+
             if (audioRef.current) {
                 audioRef.current.src = next.audioUrl;
                 audioRef.current.load();
@@ -187,26 +184,23 @@ export default function DictationPractice() {
         }
     };
 
-    useEffect(() => {
-        loadCourseData();
-    }, [courseId]);
-
-    useEffect(() => {
-        console.log("Đã cập nhật audioUrl:", audioUrl);
-    }, [audioUrl]);
-    useEffect(() => {
-        if (duration > 0) {
-            setProgress((currentTime / duration) * 100);
-        }
-    }, [currentTime, duration]);
-
-
     const playWordPronunciation = (wordAudioUrl) => {
         const audio = new Audio(wordAudioUrl);
         audio.play().catch(error => {
             console.error("Error playing word pronunciation:", error);
         });
     };
+
+    useEffect(() => {
+        loadCourseData();
+    }, [courseId]);
+
+    useEffect(() => {
+        if (duration > 0) {
+            setProgress((currentTime / duration) * 100);
+        }
+    }, [currentTime, duration]);
+
     return (
         <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
             <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
@@ -307,9 +301,8 @@ export default function DictationPractice() {
                 {/* Info boxes */}
                 <div className="flex-1 grid gap-4 w-full">
                     {/* TranslationBox with Language Dropdown */}
-                    <TranslationBox translation={translation || {en: "No translation available"}}>
+                    <TranslationBox translation={translation || {en: "No translation available"}}/>
 
-                    </TranslationBox>
                     {/* PronunciationBox with clickable words for pronunciation */}
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">🔊 Phát âm</h2>
