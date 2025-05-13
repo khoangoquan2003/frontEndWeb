@@ -1,4 +1,3 @@
-// Sidebar.jsx
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -13,10 +12,12 @@ export default function Sidebar() {
 
     return (
         <div className="bg-gray-800 text-white w-72 h-full p-6 flex flex-col fixed left-0 top-0">
-            {/* Tiêu đề với white-space: nowrap để giữ tiêu đề trên 1 dòng */}
-            <h2 className="text-2xl font-semibold mb-6 whitespace-nowrap overflow-hidden text-ellipsis">
-                🧠 DailyDict Admin
-            </h2>
+            {/* Wrap the header in a Link to navigate to /admin/dashboard */}
+            <Link to="/admin/dashboard">
+                <h2 className="text-2xl font-semibold mb-6 whitespace-nowrap overflow-hidden text-ellipsis">
+                    🧠 DailyDict Admin
+                </h2>
+            </Link>
             <nav className="space-y-4">
                 {navItems.map(item => (
                     <Link
