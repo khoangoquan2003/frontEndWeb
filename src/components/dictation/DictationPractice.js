@@ -64,32 +64,36 @@ export default function DictationPractice() {
                 params: { courseId }
             });
 
-            const { sentences, sentenceAudios, sentencePronunciations } = res.data.result;
+            const { sentences, sentenceAudios, comments, transcript } = res.data.result;
 
-            if (!sentences || !sentenceAudios || !sentenceAudios[0]) {
+            if (!sentences || !sentenceAudios || sentenceAudios.length === 0) {
                 console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
                 return;
             }
 
+            // Gán dữ liệu từng câu
             setSentences(sentences.map((text, i) => ({
                 correctAnswer: text,
                 audioUrl: sentenceAudios[i] || "",
-                pronunciation: sentencePronunciations[i] || []
+                pronunciation: [] // Không có dữ liệu phát âm
             })));
 
+            // Gán câu đầu tiên
             const firstSentence = sentences[0];
             setCorrectAnswer(firstSentence);
             setAudioUrl(sentenceAudios[0]);
 
-            // Set pronunciation for the first sentence
+            // Phát âm để trống
             setPronunciation({
                 sentence: firstSentence,
-                words: sentencePronunciations[0].map(word => ({
-                    word: word.text,
-                    audioUrl: word.audioUrl
-                }))
+                words: []
             });
 
+            // Gán bình luận và transcript nếu cần dùng
+            setComments(comments || []);
+            setTranslation({ en: firstSentence, vi: "Chưa có bản dịch" });
+
+            // Reset giao diện
             setInput("");
             setShowAnswer(false);
         } catch (err) {
@@ -152,40 +156,66 @@ export default function DictationPractice() {
         setLoadingAnswer(true);
 
         try {
-            const userInput = input.trim();
-            if (!userInput) {
-                setRevealedAnswer("Vui lòng nhập câu trả lời.");
+            const rawInput = input ? input.trim() : '';  // Kiểm tra nếu input hợp lệ, nếu không gán giá trị mặc định là ''
+            console.log("Raw input:", rawInput);  // Kiểm tra giá trị của input
+
+            if (!rawInput) {
+                setRevealedAnswer("⚠️ Vui lòng nhập câu trả lời.");
                 setShowAnswer(true);
                 return;
             }
 
-            const res = await http.post(
-                `/api/check-sentence?courseId=${courseId}`,
-                userInput,
-                { headers: { "Content-Type": "text/plain" } }
-            );
-
-            const result = res.data;
-
-            if (result.trim().toLowerCase().startsWith("correct")) {
-                setRevealedAnswer("✅ Chính xác!");
+            if (!courseId) {
+                console.error("⚠️ courseId không hợp lệ.");
+                setRevealedAnswer("❌ Không thể xác định khóa học.");
                 setShowAnswer(true);
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                loadNextSentence();
-            } else {
-                setRevealedAnswer(`❌ Sai rồi! Đáp án đúng là: "${correctAnswer}"`);
-                setShowAnswer(true);
-                await http.post(`/api/reset-progress`);
+                return;
             }
 
-        } catch (error) {
-            console.error("❌ Lỗi khi kiểm tra câu:", error);
-            setRevealedAnswer("❌ Lỗi server! Không kiểm tra được câu trả lời.");
+            const normalize = (str) => str ? str.trim().toLowerCase() : '';  // Kiểm tra nếu str hợp lệ
+
+            // Kiểm tra lại giá trị correctAnswer
+            console.log("Correct answer:", correctAnswer);
+            if (!correctAnswer) {
+                throw new Error("Đáp án đúng không có giá trị.");
+            }
+
+            // Kiểm tra xem câu nhập vào có hoàn toàn đúng không
+            const isCorrect = normalize(rawInput) === normalize(correctAnswer);
+
+            console.log("Is correct:", isCorrect);  // Kiểm tra kết quả so sánh có đúng không
+
+            if (isCorrect) {
+                // Nếu câu đúng, hiển thị đáp án đúng nguyên bản
+                setRevealedAnswer(`✅ Chính xác! Đáp án là: "${correctAnswer}"`);
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                loadNextSentence();  // Câu đúng → sang câu tiếp theo
+            } else {
+                // Nếu có từ sai, thay thế từ sai trong đáp án đúng bằng dấu "*" có độ dài như từ đó
+                const correctWords = correctAnswer.split(" ");
+                const inputWords = rawInput.split(" ");
+
+                const result = correctWords.map((word, index) => {
+                    if (normalize(inputWords[index]) === normalize(word)) {
+                        return word;  // Giữ nguyên từ đúng nếu người dùng nhập đúng
+                    } else {
+                        return "*".repeat(word.length);  // Thay bằng dấu "*" có độ dài như từ đúng
+                    }
+                }).join(" ");  // Ghép lại thành câu hoàn chỉnh
+
+                setRevealedAnswer(`❌ Không đúng.\n${result}`);
+            }
             setShowAnswer(true);
+
+        } catch (error) {
+            console.error("❌ Lỗi khi kiểm tra câu:", error);  // Log lỗi vào console để dễ dàng debug
+            // Không hiển thị thông báo lỗi server nữa
         } finally {
             setLoadingAnswer(false);
         }
     };
+
+
 
     const loadNextSentence = () => {
         if (currentSentenceIndex < sentences.length - 1) {
