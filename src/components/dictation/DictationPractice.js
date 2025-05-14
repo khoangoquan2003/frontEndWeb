@@ -259,10 +259,22 @@ export default function DictationPractice() {
                         <div className="flex items-center gap-3 mr-2">
                             <button
                                 onClick={isPlaying ? handlePause : handlePlay}
-                                className="w-10 h-10 flex justify-center items-center border text-white rounded-full"
+                                className="w-8 h-8 flex justify-center items-center rounded-sm bg-white hover:bg-gray-100 transition-colors duration-150"
                             >
-                                {isPlaying ? "⏸" : "▶️"}
+                                {isPlaying ? (
+                                    // Pause: hai thanh đứng
+                                    <div className="flex gap-[2px]">
+                                        <div className="w-[3px] h-4 bg-black" />
+                                        <div className="w-[3px] h-4 bg-black" />
+                                    </div>
+                                ) : (
+                                    // Play: tam giác nhỏ màu đen
+                                    <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black ml-[2px]" />
+                                )}
                             </button>
+
+
+
                         </div>
                         <div className="flex flex-1 items-center gap-1">
                             <span className="text-sm text-gray-600 w-10">{formatTime(currentTime)}</span>
@@ -280,10 +292,11 @@ export default function DictationPractice() {
                         <div className="mx-2 relative">
                             <button
                                 onClick={() => setShowVolumeSlider((prev) => !prev)}
-                                className="px-3 py-2 bg-gray-300 rounded-full text-xl hover:bg-gray-400"
+                                className="w-8 h-8 flex justify-center items-center text-black bg-white hover:bg-gray-100 rounded-sm transition-colors duration-150 text-lg"
                             >
                                 {isMuted || volume === 0 ? "🔇" : "🔊"}
                             </button>
+
                             {showVolumeSlider && (
                                 <div className="absolute top-12 right-0 bg-white shadow-md rounded-md px-3 py-2 w-32">
                                     <input
@@ -302,18 +315,20 @@ export default function DictationPractice() {
                         <div className="mx-2 relative">
                             <button
                                 onClick={() => setShowMenu(!showMenu)}
-                                className="px-3 py-2 bg-gray-300 rounded-full text-xl hover:bg-gray-400"
+                                className="px-3 py-2  text-xl hover:bg-gray-400"
                             >
                                 ⋮
                             </button>
                             {showMenu && (
-                                <div className="absolute top-12 right-0 bg-white shadow-md rounded-md w-32 p-2 space-y-2">
+                                <div className="absolute top-12 right-0 bg-white border border-black rounded-sm w-32 p-2 space-y-2 shadow-none">
                                     {[1.0, 1.25, 1.5, 2.0].map((rate) => (
                                         <button
                                             key={rate}
                                             onClick={() => handleChangeSpeed(rate)}
-                                            className={`w-full text-left px-2 py-1 ${
-                                                playbackRate === rate ? "bg-blue-500 text-white" : "text-gray-700"
+                                            className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors duration-150 ${
+                                                playbackRate === rate
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-black hover:text-white"
                                             }`}
                                         >
                                             {rate}x
@@ -321,7 +336,7 @@ export default function DictationPractice() {
                                     ))}
                                     <button
                                         onClick={() => handleDownload(audioUrl)}
-                                        className="w-full text-left px-2 py-1 text-gray-700 hover:bg-gray-200"
+                                        className="w-full text-left px-2 py-1 text-sm rounded-sm bg-white text-black hover:bg-black hover:text-white transition-colors duration-150"
                                     >
                                         📥 Tải xuống
                                     </button>
@@ -344,14 +359,14 @@ export default function DictationPractice() {
                             className={`px-4 py-2 ${loadingAnswer ? "bg-gray-500 cursor-not-allowed" : "bg-green-600"} text-white rounded hover:bg-green-700`}
                             disabled={loadingAnswer}
                         >
-                            {loadingAnswer ? "Đang kiểm tra..." : "✔️ Kiểm tra"}
+                            {loadingAnswer ? "Đang kiểm tra..." : "Kiểm tra"}
                         </button>
 
                         <button
                             onClick={loadNextSentence}
                             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                         >
-                            ⏭ Bỏ qua
+                            Bỏ qua
                         </button>
 
                         {canProceed && (
@@ -359,7 +374,7 @@ export default function DictationPractice() {
                                 onClick={loadNextSentence}
                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                             >
-                                ➡️ Câu tiếp theo
+                                Câu tiếp theo
                             </button>
                         )}
                     </div>

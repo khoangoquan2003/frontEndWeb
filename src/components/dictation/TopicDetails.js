@@ -108,33 +108,50 @@ const TopicDetails = () => {
 
                         {/* Dropdown Topics */}
                         {openSection === section.id && (
-                            <div className="mt-4">
-                                <table className="min-w-full table-auto border-collapse">
-                                    <thead>
-                                    <tr>
-                                        <th className="border px-4 py-2 text-left">#</th>
-                                        <th className="border px-4 py-2 text-left">Topic</th>
-                                        <th className="border px-4 py-2 text-left">Parts</th>
-                                        <th className="border px-4 py-2 text-left">Vocab Level</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    {chunkTopics(section.topics).map((topicRow, rowIndex) => (
-                                        topicRow.map((topic, index) => (
-                                            <tr
+                            <div className="mt-4 space-y-4">
+                                {chunkTopics(section.topics).map((topicRow, rowIndex) => (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4" key={rowIndex}>
+                                        {topicRow.map((topic, index) => (
+                                            <div
                                                 key={index}
-                                                className="cursor-pointer hover:bg-gray-100"
+                                                className={`border p-4 rounded cursor-pointer hover:bg-gray-100 ${topic === "First snowfall" ? 'bg-blue-50' : ''}`}
                                                 onClick={() => navigate(`/dictation?courseId=${section.id}`)}
                                             >
-                                                <td className="border px-4 py-2">{rowIndex * 7 + index + 1}</td>
-                                                <td className="border px-4 py-2">{topic}</td>
-                                                <td className="border px-4 py-2">20</td>
-                                                <td className="border px-4 py-2">A1</td>
-                                            </tr>
-                                        ))
-                                    ))}
-                                    </tbody>
-                                </table>
+                                                <h3 className="font-semibold text-lg">{topic}</h3>
+                                                <div className="text-sm text-gray-600 mt-2">
+                                                    <div>Parts: 20</div>
+                                                    <div>Vocab Level: A1</div>
+                                                </div>
+
+                                                {/* Thanh tiến trình trong bài "First snowfall" */}
+                                                {topic === "First snowfall" && (
+                                                    <div className="mt-4">
+                                                        <div className="text-sm text-gray-600 mb-2">Progress for "First snowfall"</div>
+                                                        <div className="relative pt-1">
+                                                            <div className="flex mb-2 items-center justify-between">
+                                                                <div>
+                                                                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase">
+                                                                        50% Completed
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex mb-2">
+                                                                <div className="w-full bg-gray-200 rounded-full">
+                                                                    <div
+                                                                        className="bg-blue-600 text-xs leading-none py-1 text-center text-white rounded-full"
+                                                                        style={{ width: "50%" }}
+                                                                    >
+                                                                        {/* You can change the percentage value dynamically */}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

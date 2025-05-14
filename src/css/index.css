@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* index.css hoặc App.css */
+
+body {
+  background-color: white;
+  color: black;
+}
+
+.dark body {
+  background-color: #1a202c; /* tương ứng với Tailwind 'bg-gray-900' */
+  color: white;
+}
+
+/* Link ở footer */
+.footer-link {
+  text-transform: uppercase;
+  display: block;
+  white-space: pre-line;
+}
+
+/* Tuỳ chỉnh màu link trong dark mode nếu cần */
+.dark .footer-link {
+  color: #cccccc;
+}

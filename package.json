@@ -17,6 +17,7 @@
     "@vitalets/google-translate-api": "^9.2.1",
     "axios": "^1.8.4",
     "emoji-picker-react": "^4.12.2",
+    "font-awesome": "^4.7.0",
     "lucide-react": "^0.486.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -24,7 +25,6 @@
     "react-router-dom": "^6.30.0",
     "react-scripts": "5.0.1",
     "react-toastify": "^11.0.5",
-    "use-dark-mode": "^2.3.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
