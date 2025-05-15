@@ -97,7 +97,7 @@ const CommentBox = () => {
                                             {c.userName || "Người dùng"}
                                         </span>
                                         <span className="text-sm text-gray-500">
-                                            {c.createdAt || "Vừa xong"}
+                                            {c.createDate || "Vừa xong"}
                                         </span>
                                     </div>
                                     <p className="text-gray-700">{c.content}</p>

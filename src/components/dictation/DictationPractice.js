@@ -47,7 +47,8 @@ export default function DictationPractice() {
         setLoading(true);
         try {
             const res = await http.get(`/api/get-course`, {
-                params: {courseId}
+                params: {courseId},
+                withCredentials: false
             });
 
             const {sentences, sentenceAudios} = res.data.result;
