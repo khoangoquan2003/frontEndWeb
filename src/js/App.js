@@ -95,6 +95,7 @@ function AppWrapper() {
                     element={
                         <Layout nickname={nickname}>
                             <Routes>
+
                                 <Route path="/homepage" element={<HomePage />} />
                                 <Route path="/dictation" element={<DictationPage />} />
                                 <Route path="/dictation-page" element={<DictationPage />} />
