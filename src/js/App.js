@@ -29,6 +29,8 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from '../admin-dashboard/Dashboard';
 import UserManagement from '../admin-dashboard/UserManagement';  // Import thêm
+import OAuthRedirectHandler from "../components/common/OAuthRedirectHandler";
+import OAuthSuccess from '../components/common/OAuthSuccess';
 
 
 const Layout = ({ children, nickname }) => {
@@ -95,6 +97,8 @@ function AppWrapper() {
                     element={
                         <Layout nickname={nickname}>
                             <Routes>
+                                <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
+                                <Route path="/oauth-success" element={<OAuthSuccess />} />
 
                                 <Route path="/homepage" element={<HomePage />} />
                                 <Route path="/dictation" element={<DictationPage />} />

@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify'; // Import toast
 import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaCog } from 'react-icons/fa';
 
-const Header = ({ nickname }) => {
+const Header = ({ nickname: propNickname }) => {
+    const nickname = propNickname || localStorage.getItem("nickname");
     const [isModalOpen, setIsModalOpen] = useState(false); // Modal state for notes
     const [noteContent, setNoteContent] = useState(''); // State for note content
     const [notes, setNotes] = useState([]); // State for storing notes
@@ -183,13 +184,23 @@ const Header = ({ nickname }) => {
                                     <Link to="/changePassword" className="block px-4 py-2 hover:bg-gray-100">🔑 Change Password</Link>
                                     <Link to="/changeMail" className="block px-4 py-2 hover:bg-gray-100">✉️ Change Email</Link>
                                     <div className="border-t my-1"></div>
-                                    <Link
-                                        to="/login"
-                                        onClick={handleLogout}
-                                        className="block px-4 py-2 hover:bg-red-100 text-red-600"
-                                    >
-                                        🚪 Logout
-                                    </Link>
+                                    {nickname ? (
+                                        <Link
+                                            to="/login"
+                                            onClick={handleLogout}
+                                            className="block px-4 py-2 hover:bg-red-100 text-red-600"
+                                        >
+                                            🚪 Logout
+                                        </Link>
+                                    ) : (
+                                        <Link
+                                            to="/login"
+                                            className="block px-4 py-2 hover:bg-blue-100 text-blue-600"
+                                        >
+                                            🔐 Login
+                                        </Link>
+                                    )}
+
                                 </div>
                             )}
                         </div>
