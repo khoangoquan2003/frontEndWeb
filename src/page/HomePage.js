@@ -78,7 +78,7 @@ const HomePage = () => {
                 <p className="text-lg mb-6">
                     Cách nhanh nhất để nâng cao kỹ năng nghe và phát âm của bạn!
                 </p>
-                <Link to="/dictation">
+                <Link to="/topics">
                     <button className="bg-white text-blue-500 px-6 py-3 rounded-md font-bold hover:bg-gray-200">
                         Bắt đầu ngay
                     </button>
