@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
-import AudioPlayer from "./AudioPlayerPage"; // Import AudioPlayer
+import AudioPlayer from "./AudioPlayerPage";
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
@@ -10,9 +10,10 @@ export default function DictationPage() {
     const [duration, setDuration] = useState(0);
     const [activeIndex, setActiveIndex] = useState(-1);
     const [playbackRate, setPlaybackRate] = useState(1);
-    const [volume, setVolume] = useState(1); // Default volume set to 1 (100%)
+    const [volume, setVolume] = useState(1);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isVolumeControlOpen, setIsVolumeControlOpen] = useState(false); // Toggle for volume control visibility
+    const [audioUrl, setAudioUrl] = useState("");
+    const [progress, setProgress] = useState(0);
 
     const transcriptData = [
         { text: "Hello everyone, welcome to today's dictation practice.", start: 0, end: 4 },
@@ -22,42 +23,60 @@ export default function DictationPage() {
         { text: "Good luck and have fun!", start: 16, end: 20 },
     ];
 
-    const handlePlayPauseStop = () => {
-        if (audioRef.current.paused) {
-            audioRef.current.play();
+    // Handle Play, Pause, and Stop actions
+    const handlePlayPauseStop = async () => {
+        if (!isPlaying) {
+            try {
+                const response = await fetch("http://localhost:8080/api/get-main-audio?courseId=1");
+                const data = await response.text(); // Nếu trả về chuỗi URL
+                console.log("Fetched audio URL:", data);
+
+                setAudioUrl(data);
+
+                setTimeout(() => {
+                    if (audioRef.current) {
+                        audioRef.current.play();
+                        setIsPlaying(true);
+                    }
+                }, 100);
+            } catch (error) {
+                console.error("Error fetching audio URL:", error);
+            }
         } else {
             audioRef.current.pause();
+            setIsPlaying(false);
         }
-        setIsPlaying(!isPlaying);
     };
 
+    // Handle seeking within the audio
     const handleSeek = (e) => {
-        if (audioRef.current) {
-            const value = Number(e.target.value);
-            audioRef.current.currentTime = value;
-            setCurrentTime(value);
-        }
+        const value = Number(e.target.value);
+        audioRef.current.currentTime = value;
+        setCurrentTime(value);
     };
 
+    // Handle downloading the audio
     const handleDownload = () => {
         const link = document.createElement("a");
-        link.href = "/audio/sample.mp3";
+        link.href = audioUrl;
         link.download = "dictation_audio.mp3";
         link.click();
     };
 
+    // Handle changing playback rate
     const handlePlaybackRateChange = (rate) => {
         setPlaybackRate(rate);
-        audioRef.current.playbackRate = rate;
+        if (audioRef.current) audioRef.current.playbackRate = rate;
     };
 
+    // Handle volume change
     const handleVolumeChange = (e) => {
-        setVolume(e.target.value);
-        if (audioRef.current) {
-            audioRef.current.volume = e.target.value;
-        }
+        const value = Number(e.target.value);
+        setVolume(value);
+        if (audioRef.current) audioRef.current.volume = value;
     };
 
+    // Update current time and active transcript index
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -80,8 +99,9 @@ export default function DictationPage() {
             audio.removeEventListener("timeupdate", update);
             audio.removeEventListener("loadedmetadata", setDur);
         };
-    }, []);
+    }, [audioUrl]);
 
+    // Format time to MM:SS
     const formatTime = (time) => {
         const min = Math.floor(time / 60);
         const sec = Math.floor(time % 60);
@@ -90,17 +110,16 @@ export default function DictationPage() {
 
     return (
         <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
-            {/* Page Navigation */}
             <div className="flex justify-center mb-6 space-x-4">
                 <button
                     onClick={() => setCurrentPage("dictation")}
-                    className={`px-4 py-2 rounded ${currentPage === "dictation" ? "bg-black text-white" : "bg-white text-black border border-black"} hover:bg-gray-300`}
+                    className={`px-4 py-2 rounded ${currentPage === "dictation" ? "bg-blue-600 text-white" : "bg-gray-300"}`}
                 >
                     Practice
                 </button>
                 <button
                     onClick={() => setCurrentPage("transcript")}
-                    className={`px-4 py-2 rounded ${currentPage === "transcript" ? "bg-black text-white" : "bg-white text-black border border-black"} hover:bg-gray-300`}
+                    className={`px-4 py-2 rounded ${currentPage === "transcript" ? "bg-blue-600 text-white" : "bg-gray-300"}`}
                 >
                     Full transcript
                 </button>
@@ -108,7 +127,6 @@ export default function DictationPage() {
 
             <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
 
-            {/* Conditional Rendering */}
             {currentPage === "dictation" && (
                 <div className="flex flex-col items-start space-y-4">
                     <DictationPractice
@@ -126,110 +144,67 @@ export default function DictationPage() {
                 </div>
             )}
 
-            {/* Full Transcript Page */}
             {currentPage === "transcript" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded bg-gray-100">
-                    <div className="w-full flex flex-col space-y-3 relative">
-                        <audio ref={audioRef} src="/audio/sample.mp3" />
+                    <div className="w-full flex flex-col space-y-3">
+                        <audio ref={audioRef} src={audioUrl}/>
                         <div className="flex items-center justify-between mb-2 space-x-3">
                             <div className="flex space-x-2">
-                                <button
-                                    onClick={handlePlayPauseStop}
-                                    title={isPlaying ? "Pause" : "Play"}
-                                    className="text-xl text-black hover:bg-gray-400 hover:scale-95 transition duration-200 ease-in-out"
-                                >
-                                    {isPlaying ? (
-                                        // Pause: hai thanh đứng màu đen
-                                        <div className="flex gap-[2px]">
-                                            <div className="w-[3px] h-4 bg-black" />
-                                            <div className="w-[3px] h-4 bg-black" />
-                                        </div>
-                                    ) : (
-                                        // Play: tam giác màu đen
-                                        <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black" />
-                                    )}
+                                <button onClick={handlePlayPauseStop} title={isPlaying ? "Pause" : "Play"}
+                                        className="text-xl">
+                                    {isPlaying ? "❚❚" : "▶"}
                                 </button>
                             </div>
+                            <div className="flex-1 flex items-center space-x-2">
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={duration}
+                                    value={currentTime}
+                                    onChange={handleSeek}
+                                    className="flex-1 accent-blue-600 w-2/3"
+                                />
+                            </div>
+                            <button
+                                onClick={() => setIsSettingsOpen(prev => !prev)}
+                                className="text-2xl p-3 transform rotate-90"
+                                title="Settings"
+                            >
+                                &#8230;
+                            </button>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-700 mt-1">
+                            <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+                        </div>
 
-
-                            {/* Seek Bar + Volume + Settings */}
-                            <div className="flex items-center justify-between w-full space-x-4 relative">
-
-                                {/* Audio Seek Bar */}
-                                <div className="flex-1 flex items-center space-x-2">
+                        {isSettingsOpen && (
+                            <div
+                                className="flex flex-col items-start absolute bg-white p-3 border rounded mt-1 space-y-2">
+                                <button onClick={handleDownload} className="text-sm" title="Download">
+                                    Download
+                                </button>
+                                <div className="flex space-x-2">
+                                    <button onClick={() => handlePlaybackRateChange(1)} className="text-sm">1x</button>
+                                    <button onClick={() => handlePlaybackRateChange(1.5)} className="text-sm">1.5x
+                                    </button>
+                                    <button onClick={() => handlePlaybackRateChange(2)} className="text-sm">2x</button>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <button onClick={() => audioRef.current.muted = !audioRef.current.muted}
+                                            className="text-sm">🔊
+                                    </button>
                                     <input
                                         type="range"
                                         min="0"
-                                        max={duration}
-                                        value={currentTime}
-                                        onChange={handleSeek}
-                                        className="w-full accent-blue-600"
+                                        max="1"
+                                        step="0.01"
+                                        value={volume}
+                                        onChange={handleVolumeChange}
+                                        className="w-20 accent-blue-600"
                                     />
                                 </div>
-
-                                {/* Time + Volume */}
-                                <div className="relative flex items-center space-x-2">
-                                    {/* Time Display */}
-                                    <div className="text-sm text-gray-700">
-                                        <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
-                                    </div>
-
-                                    {/* Volume Button */}
-                                    <button
-                                        onClick={() => setIsVolumeControlOpen(prev => !prev)}
-                                        className="text-sm ml-2"
-                                        title="Adjust Volume"
-                                    >
-                                        <i className={`fas ${volume === 0 ? 'fa-volume-off' : 'fa-volume-up'}`} />
-                                    </button>
-
-                                    {/* Volume Dropdown */}
-                                    {isVolumeControlOpen && (
-                                        <div className="absolute top-full right-0 mt-2 bg-white p-2 rounded shadow z-50">
-                                            <input
-                                                type="range"
-                                                min="0"
-                                                max="1"
-                                                step="0.01"
-                                                value={volume}
-                                                onChange={handleVolumeChange}
-                                                className="w-24 accent-blue-600"
-                                                title="Volume"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Settings Button + Dropdown */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsSettingsOpen(prev => !prev)}
-                                        className="text-2xl p-3 transform rotate-90 hover:cursor-pointer hover:bg-gray-200 hover:scale-95 transition duration-200 ease-in-out"
-                                        title="Settings"
-                                    >
-                                        &#8230;
-                                    </button>
-
-                                    {isSettingsOpen && (
-                                        <div className="absolute top-full right-0 mt-2 bg-white p-3 border rounded shadow z-50 space-y-2">
-                                            <button onClick={handleDownload} className="text-sm" title="Download">
-                                                Download
-                                            </button>
-                                            <div className="flex space-x-1">
-                                                <button onClick={() => handlePlaybackRateChange(1)} className="text-sm">1x</button>
-                                                <button onClick={() => handlePlaybackRateChange(1.5)} className="text-sm">1.5x</button>
-                                                <button onClick={() => handlePlaybackRateChange(2)} className="text-sm">2x</button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
-
-                        </div>
-
-
-
-
+                        )}
                     </div>
 
                     <div>
@@ -250,8 +225,7 @@ export default function DictationPage() {
                 </div>
             )}
 
-            {/* AudioPlayer Component at the bottom */}
-            <AudioPlayer /> {/* Call the AudioPlayer at the bottom */}
+            <AudioPlayer />
         </div>
     );
 }
