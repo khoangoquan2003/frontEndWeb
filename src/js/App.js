@@ -29,6 +29,9 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Dashboard from '../admin-dashboard/Dashboard';
 import UserManagement from '../admin-dashboard/UserManagement';  // Import thêm
+import OAuthRedirectHandler from "../components/common/OAuthRedirectHandler";
+import OAuthSuccess from '../components/common/OAuthSuccess';
+import ForgotPassword from "../components/common/ForgotPassword";
 
 
 const Layout = ({ children, nickname }) => {
@@ -39,7 +42,7 @@ const Layout = ({ children, nickname }) => {
 
     // Trang không cần Banner
     const hideBanner =
-        ["/", "/login", "/register", "/homepage"].includes(location.pathname) ||
+        ["/", "/login", "/register", "/homepage","/forgot-password"].includes(location.pathname) ||
         location.pathname.startsWith("/admin");
 
     return (
@@ -95,6 +98,10 @@ function AppWrapper() {
                     element={
                         <Layout nickname={nickname}>
                             <Routes>
+                                <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
+                                <Route path="/oauth-success" element={<OAuthSuccess />} />
+                                <Route path="/forgot-password" element={<ForgotPassword />} />
+
                                 <Route path="/homepage" element={<HomePage />} />
                                 <Route path="/dictation" element={<DictationPage />} />
                                 <Route path="/dictation-page" element={<DictationPage />} />

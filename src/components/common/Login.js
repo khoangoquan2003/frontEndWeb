@@ -1,20 +1,17 @@
-import React, {useEffect, useState} from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dlImage from '../../assets/img/1.jpg';
-import {AuthApi} from "../../api/Auth";
 
 const Login = () => {
     const navigate = useNavigate();
     const [userName, setUserName] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setError('');
-        setSuccessMessage('');
 
         try {
             const response = await axios.post("http://localhost:8080/auth/test-log-in", {
@@ -28,30 +25,24 @@ const Login = () => {
             const nickname = response.data?.result?.nickName;
             const userId = response.data?.result?.userId;
             if (token) {
+                // Lưu thông tin vào localStorage
                 localStorage.setItem("token", token);
                 localStorage.setItem("nickname", nickname);
                 localStorage.setItem("userId", userId);
 
 
-                // ❌ Không cần setSuccessMessage nữa
-                // ✅ Chuyển qua navigate để truyền loginSuccess
-                navigate("/homepage", { state: { loginSuccess: true } });
+                // Điều hướng đến trang HomePage và truyền dữ liệu nickname
+                navigate("/homepage", { state: { loginSuccess: true, nickname } });
             } else {
                 setError("Sai tài khoản hoặc mật khẩu!");
             }
+
 
         } catch (err) {
             console.error("Lỗi đăng nhập:", err);
             setError(err.response?.data?.message || "Đăng nhập thất bại!");
         }
     };
-
-    // useEffect(() => {
-    //     AuthApi.login("123", "123").then(resp => {
-    //         const nickName = resp.data.result.nickName;
-    //         console.log("Nickname:", nickName);
-    //     });
-    // }, []);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 relative">
@@ -76,8 +67,7 @@ const Login = () => {
                     Login with Google
                 </a>
 
-
-                <div className="text-gray-500 text-sm text-center mb-4">Or enter your password</div>
+                <div className="text-gray-500 text-sm text-center mb-4">Or enter your username and password</div>
 
                 <form onSubmit={handleLogin}>
                     <input
@@ -102,7 +92,7 @@ const Login = () => {
                 </form>
 
                 <div className="text-sm text-center mt-3">
-                    <a href="#" className="text-blue-500 hover:underline">Forgot your password?</a>
+                    <a href="/forgot-password" className="text-blue-500 hover:underline">Forgot your password?</a>
                 </div>
                 <div className="text-sm text-center mt-1">
                     Haven't had an account?

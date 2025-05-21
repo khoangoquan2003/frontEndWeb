@@ -7,7 +7,7 @@ const TopicDetails = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedLevel, setSelectedLevel] = useState("All levels");
     const [filter, setFilter] = useState("No filter");
-    const [openSection, setOpenSection] = useState(null); // To control dropdown visibility
+    const [openSection, setOpenSection] = useState(null);
     const navigate = useNavigate();
 
     const sections = Array.from({ length: 8 }, (_, i) => ({
@@ -38,21 +38,28 @@ const TopicDetails = () => {
         ]
     }));
 
-    const chunkTopics = (topics) => {
-        const chunks = [];
-        for (let i = 0; i < topics.length; i += 7) {
-            chunks.push(topics.slice(i, i + 7));
-        }
-        return chunks;
+    const splitTopicsIntoColumns = (topics, columns = 3) => {
+        const colLength = Math.ceil(topics.length / columns);
+        return Array.from({ length: columns }, (_, i) =>
+            topics.slice(i * colLength, (i + 1) * colLength)
+        );
     };
+
+    const progressColors = [
+        'bg-blue-600',
+        'bg-green-600',
+        'bg-yellow-500',
+        'bg-purple-600',
+        'bg-red-500',
+        'bg-pink-500',
+        'bg-indigo-500'
+    ];
 
     return (
         <div className="p-8">
-            {/* Title and search form on the same line */}
+            {/* Title and search form */}
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-4xl font-bold">Short Stories</h1>
-
-                {/* 🔍 Search & Filters */}
                 <div className="flex gap-4 items-center w-full sm:w-auto">
                     <input
                         type="text"
@@ -87,17 +94,17 @@ const TopicDetails = () => {
                 </div>
             </div>
 
-            {/* 📚 Section List */}
+            {/* Section List */}
             <div className="space-y-6">
                 {sections.map((section) => (
                     <div key={section.id}>
-                        {/* Section */}
+                        {/* Section Header */}
                         <div
                             className="border rounded px-6 py-4 cursor-pointer flex justify-between items-center hover:bg-gray-50 transition"
                             onClick={() => setOpenSection(openSection === section.id ? null : section.id)}
                         >
                             <div className="font-semibold text-2xl">
-                                {section.title}{" "}
+                                {section.title}
                                 <span className="text-sm font-normal ml-2 text-gray-500">
                                     {section.count}
                                     <FaStar className="inline ml-1 text-yellow-400" />
@@ -108,48 +115,44 @@ const TopicDetails = () => {
 
                         {/* Dropdown Topics */}
                         {openSection === section.id && (
-                            <div className="mt-4 space-y-4">
-                                {chunkTopics(section.topics).map((topicRow, rowIndex) => (
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4" key={rowIndex}>
-                                        {topicRow.map((topic, index) => (
-                                            <div
-                                                key={index}
-                                                className={`border p-4 rounded cursor-pointer hover:bg-gray-100 ${topic === "First snowfall" ? 'bg-blue-50' : ''}`}
-                                                onClick={() => navigate(`/dictation?courseId=${section.id}`)}
-                                            >
-                                                <h3 className="font-semibold text-lg">{topic}</h3>
-                                                <div className="text-sm text-gray-600 mt-2">
-                                                    <div>Parts: 20</div>
-                                                    <div>Vocab Level: A1</div>
-                                                </div>
+                            <div className="flex gap-6 mt-4">
+                                {splitTopicsIntoColumns(section.topics).map((column, colIndex) => (
+                                    <div key={colIndex} className="flex flex-col gap-4 flex-1">
+                                        {column.map((topic, index) => {
+                                            const globalIndex = colIndex * Math.ceil(section.topics.length / 3) + index;
+                                            const colorClass = progressColors[globalIndex % progressColors.length];
+                                            const progressPercent = 20 + (globalIndex * 13) % 60; // số % giả từ 20% đến 80%
 
-                                                {/* Thanh tiến trình trong bài "First snowfall" */}
-                                                {topic === "First snowfall" && (
-                                                    <div className="mt-4">
-                                                        <div className="text-sm text-gray-600 mb-2">Progress for "First snowfall"</div>
-                                                        <div className="relative pt-1">
-                                                            <div className="flex mb-2 items-center justify-between">
-                                                                <div>
-                                                                    <span className="text-xs font-semibold inline-block py-1 px-2 uppercase">
-                                                                        50% Completed
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex mb-2">
-                                                                <div className="w-full bg-gray-200 rounded-full">
-                                                                    <div
-                                                                        className="bg-blue-600 text-xs leading-none py-1 text-center text-white rounded-full"
-                                                                        style={{ width: "50%" }}
-                                                                    >
-                                                                        {/* You can change the percentage value dynamically */}
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className={`border p-4 rounded cursor-pointer hover:bg-gray-100 ${topic === "First snowfall" ? 'bg-blue-50' : ''}`}
+                                                    onClick={() => navigate(`/dictation?courseId=${section.id}`)}
+                                                >
+                                                    <h3 className="font-semibold text-lg">{topic}</h3>
+                                                    <div className="text-sm text-gray-600 mt-2">
+                                                        <div>Parts: 20</div>
+                                                        <div>Vocab Level: A1</div>
+                                                    </div>
+
+                                                    {/* Progress bar for First snowfall */}
+                                                    {true && (
+                                                        <div className="mt-4">
+                                                            <div className="relative pt-1">
+                                                                <div className="flex mb-2">
+                                                                    <div className="w-full bg-gray-200 rounded-full">
+                                                                        <div
+                                                                            className={`${colorClass} text-xs leading-none py-1 text-center text-white rounded-full`}
+                                                                            style={{ width: `${progressPercent}%` }}
+                                                                        ></div>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 ))}
                             </div>

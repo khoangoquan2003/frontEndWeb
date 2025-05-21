@@ -7,8 +7,9 @@ import {
 
 const Footer = () => {
     return (
-        <footer className="bg-gray-100 text-blue-600 px-8 py-10 border-t border-gray-200">
-            <div className="max-w-screen-xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-sm">
+        <footer className="bg-gray-100 text-blue-600 border-t border-gray-200">
+            {/* Nội dung chính */}
+            <div className="px-8 py-10 max-w-screen-xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 text-sm">
                 {/* Column 1 */}
                 <div className="space-y-2">
                     <div className="flex items-center space-x-2">
@@ -94,13 +95,10 @@ const Footer = () => {
                 </div>
             </div>
 
-
-            <div className="mt-8 text-center text-white text-base bg-black py-3">
+            {/* Copyright */}
+            <div className="w-full bg-black text-white text-center text-base py-3">
                 © dailydictation.com · since 2019
             </div>
-
-
-
         </footer>
     );
 };
