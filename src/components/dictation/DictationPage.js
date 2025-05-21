@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
-import AudioPlayer from "./AudioPlayerPage"; // Import AudioPlayer
+import AudioPlayer from "./AudioPlayerPage";
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
@@ -10,17 +10,31 @@ export default function DictationPage() {
     const [duration, setDuration] = useState(0);
     const [activeIndex, setActiveIndex] = useState(-1);
     const [playbackRate, setPlaybackRate] = useState(1);
-    const [volume, setVolume] = useState(1); // Default volume set to 1 (100%)
+    const [volume, setVolume] = useState(1);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isVolumeControlOpen, setIsVolumeControlOpen] = useState(false); // Toggle for volume control visibility
+    const [isVolumeControlOpen, setIsVolumeControlOpen] = useState(false);
 
-    const transcriptData = [
-        { text: "Hello everyone, welcome to today's dictation practice.", start: 0, end: 4 },
-        { text: "Please listen carefully and write down what you hear.", start: 4, end: 8 },
-        { text: "Let's start with some simple sentences.", start: 8, end: 12 },
-        { text: "Make sure to check your spelling and punctuation.", start: 12, end: 16 },
-        { text: "Good luck and have fun!", start: 16, end: 20 },
-    ];
+    const [audioUrl, setAudioUrl] = useState("");
+    const [transcriptData, setTranscriptData] = useState([]);
+
+    // Fetch audio and transcript data from API
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const audioRes = await fetch("http://localhost:8080/api/get-main-audio?courseId=1");
+                const audioText = await audioRes.text();
+                setAudioUrl(audioText);
+
+                const transcriptRes = await fetch("http://localhost:8080/api/get-transcript?courseId=1");
+                const transcriptJson = await transcriptRes.json();
+                setTranscriptData(transcriptJson);
+            } catch (err) {
+                console.error("Failed to fetch data:", err);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const handlePlayPauseStop = () => {
         if (audioRef.current.paused) {
@@ -41,20 +55,21 @@ export default function DictationPage() {
 
     const handleDownload = () => {
         const link = document.createElement("a");
-        link.href = "/audio/sample.mp3";
+        link.href = audioUrl;
         link.download = "dictation_audio.mp3";
         link.click();
     };
 
     const handlePlaybackRateChange = (rate) => {
         setPlaybackRate(rate);
-        audioRef.current.playbackRate = rate;
+        if (audioRef.current) audioRef.current.playbackRate = rate;
     };
 
     const handleVolumeChange = (e) => {
-        setVolume(e.target.value);
+        const vol = parseFloat(e.target.value);
+        setVolume(vol);
         if (audioRef.current) {
-            audioRef.current.volume = e.target.value;
+            audioRef.current.volume = vol;
         }
     };
 
@@ -64,11 +79,10 @@ export default function DictationPage() {
 
         const update = () => {
             setCurrentTime(audio.currentTime);
-
-            const currentIndex = transcriptData.findIndex(
+            const index = transcriptData.findIndex(
                 (line) => audio.currentTime >= line.start && audio.currentTime < line.end
             );
-            setActiveIndex(currentIndex);
+            setActiveIndex(index);
         };
 
         const setDur = () => setDuration(audio.duration);
@@ -80,7 +94,7 @@ export default function DictationPage() {
             audio.removeEventListener("timeupdate", update);
             audio.removeEventListener("loadedmetadata", setDur);
         };
-    }, []);
+    }, [transcriptData]);
 
     const formatTime = (time) => {
         const min = Math.floor(time / 60);
@@ -108,7 +122,6 @@ export default function DictationPage() {
 
             <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
 
-            {/* Conditional Rendering */}
             {currentPage === "dictation" && (
                 <div className="flex flex-col items-start space-y-4">
                     <DictationPractice
@@ -126,36 +139,25 @@ export default function DictationPage() {
                 </div>
             )}
 
-            {/* Full Transcript Page */}
             {currentPage === "transcript" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded bg-gray-100">
                     <div className="w-full flex flex-col space-y-3 relative">
-                        <audio ref={audioRef} src="/audio/sample.mp3" />
+                        <audio ref={audioRef} src={audioUrl} />
                         <div className="flex items-center justify-between mb-2 space-x-3">
                             <div className="flex space-x-2">
-                                <button
-                                    onClick={handlePlayPauseStop}
-                                    title={isPlaying ? "Pause" : "Play"}
-                                    className="text-xl text-black hover:bg-gray-400 hover:scale-95 transition duration-200 ease-in-out"
-                                >
+                                <button onClick={handlePlayPauseStop} title={isPlaying ? "Pause" : "Play"} className="text-xl text-black hover:bg-gray-400 hover:scale-95 transition duration-200 ease-in-out">
                                     {isPlaying ? (
-                                        // Pause: hai thanh đứng màu đen
                                         <div className="flex gap-[2px]">
                                             <div className="w-[3px] h-4 bg-black" />
                                             <div className="w-[3px] h-4 bg-black" />
                                         </div>
                                     ) : (
-                                        // Play: tam giác màu đen
                                         <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black" />
                                     )}
                                 </button>
                             </div>
 
-
-                            {/* Seek Bar + Volume + Settings */}
                             <div className="flex items-center justify-between w-full space-x-4 relative">
-
-                                {/* Audio Seek Bar */}
                                 <div className="flex-1 flex items-center space-x-2">
                                     <input
                                         type="range"
@@ -167,23 +169,15 @@ export default function DictationPage() {
                                     />
                                 </div>
 
-                                {/* Time + Volume */}
                                 <div className="relative flex items-center space-x-2">
-                                    {/* Time Display */}
                                     <div className="text-sm text-gray-700">
                                         <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
                                     </div>
 
-                                    {/* Volume Button */}
-                                    <button
-                                        onClick={() => setIsVolumeControlOpen(prev => !prev)}
-                                        className="text-sm ml-2"
-                                        title="Adjust Volume"
-                                    >
+                                    <button onClick={() => setIsVolumeControlOpen(prev => !prev)} className="text-sm ml-2" title="Adjust Volume">
                                         <i className={`fas ${volume === 0 ? 'fa-volume-off' : 'fa-volume-up'}`} />
                                     </button>
 
-                                    {/* Volume Dropdown */}
                                     {isVolumeControlOpen && (
                                         <div className="absolute top-full right-0 mt-2 bg-white p-2 rounded shadow z-50">
                                             <input
@@ -200,7 +194,6 @@ export default function DictationPage() {
                                     )}
                                 </div>
 
-                                {/* Settings Button + Dropdown */}
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsSettingsOpen(prev => !prev)}
@@ -212,9 +205,7 @@ export default function DictationPage() {
 
                                     {isSettingsOpen && (
                                         <div className="absolute top-full right-0 mt-2 bg-white p-3 border rounded shadow z-50 space-y-2">
-                                            <button onClick={handleDownload} className="text-sm" title="Download">
-                                                Download
-                                            </button>
+                                            <button onClick={handleDownload} className="text-sm" title="Download">Download</button>
                                             <div className="flex space-x-1">
                                                 <button onClick={() => handlePlaybackRateChange(1)} className="text-sm">1x</button>
                                                 <button onClick={() => handlePlaybackRateChange(1.5)} className="text-sm">1.5x</button>
@@ -224,12 +215,7 @@ export default function DictationPage() {
                                     )}
                                 </div>
                             </div>
-
                         </div>
-
-
-
-
                     </div>
 
                     <div>
@@ -250,8 +236,7 @@ export default function DictationPage() {
                 </div>
             )}
 
-            {/* AudioPlayer Component at the bottom */}
-            <AudioPlayer /> {/* Call the AudioPlayer at the bottom */}
+            <AudioPlayer />
         </div>
     );
 }
