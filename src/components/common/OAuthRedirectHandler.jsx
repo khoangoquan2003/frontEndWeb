@@ -36,6 +36,7 @@ const OAuthRedirectHandler = () => {
         };
 
         fetchOAuthData();
+
     }, [navigate]);
 
     return <p className="text-center mt-10">Đang xử lý đăng nhập...</p>;

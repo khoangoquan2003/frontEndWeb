@@ -22,7 +22,7 @@ const OAuthSuccess = () => {
 
             setTimeout(() => {
                 navigate('/homepage');
-            }, 15000); // chờ 3s để xem UI
+            }, 3000); // chờ 3s để xem UI
         } else {
             navigate('/homepage');
         }
