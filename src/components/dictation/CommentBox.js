@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import EmojiPicker from "emoji-picker-react";
+import { http } from "../../api/Http"; // Đường dẫn tùy vào vị trí file
 
 const reactions = {
     Like: "👍",
@@ -33,10 +33,10 @@ function CommentBox() {
 
     async function fetchComments() {
         try {
-            const res = await fetch(
-                `http://localhost:8080/api/get-all-comment?courseId=${courseId}`
-            );
-            const data = await res.json();
+            const res = await http.get("/api/get-all-comment", {
+                params: { courseId },
+            });
+            const data = res.data;
             if (Array.isArray(data.result)) {
                 const nested = buildNestedComments(data.result);
                 setComments(nested);
@@ -71,10 +71,10 @@ function CommentBox() {
 
     async function fetchAllReactions() {
         try {
-            const res = await fetch(
-                `http://localhost:8080/api/show-reaction?courseId=${courseId}`
-            );
-            const data = await res.json();
+            const res = await http.get("/api/show-reaction", {
+                params: { courseId },
+            });
+            const data = res.data;
             const reactionMap = {};
             if (Array.isArray(data.result)) {
                 data.result.forEach((item) => {
@@ -94,34 +94,38 @@ function CommentBox() {
     }
 
     async function handleSendReaction(commentId, reaction) {
-        const { currentUserReaction } = getReactionSummary(commentId);
-        if (currentUserReaction === reaction) {
-            await axios.get(
-                `http://localhost:8080/api/delete-reaction?commentId=${commentId}&userId=${userId}&reaction=${reaction}`
-            );
-        } else if (currentUserReaction) {
-            await axios.post("http://localhost:8080/api/change-reaction", {
-                commentId,
-                userId,
-                reaction,
-            });
-        } else {
-            await axios.post("http://localhost:8080/api/reaction", {
-                userId,
-                commentId,
-                courseId,
-                reaction,
-            });
+        try {
+            const { currentUserReaction } = getReactionSummary(commentId);
+            if (currentUserReaction === reaction) {
+                await http.get("/api/delete-reaction", {
+                    params: { commentId, userId, reaction },
+                });
+            } else if (currentUserReaction) {
+                await http.post("/api/change-reaction", {
+                    commentId,
+                    userId,
+                    reaction,
+                });
+            } else {
+                await http.post("/api/reaction", {
+                    userId,
+                    commentId,
+                    courseId,
+                    reaction,
+                });
+            }
+            fetchAllReactions();
+            setHoverReactionFor(null);
+        } catch (error) {
+            console.error("Lỗi xử lý reaction:", error);
         }
-        fetchAllReactions();
-        setHoverReactionFor(null);
     }
 
     async function handleSubmitComment() {
         if (!newComment.trim()) return alert("Vui lòng nhập nội dung bình luận");
 
         try {
-            await axios.post("http://localhost:8080/api/comment", {
+            await http.post("/api/comment", {
                 content: newComment,
                 userId,
                 courseId,
@@ -209,8 +213,8 @@ function CommentBox() {
                                             onClick={() => handleSendReaction(comment.id, key)}
                                             title={key}
                                         >
-                      {emoji}
-                    </span>
+                                            {emoji}
+                                        </span>
                                     ))}
                                 </div>
                             )}
@@ -229,13 +233,13 @@ function CommentBox() {
 
                         {replyToId === comment.id && (
                             <div className="mt-2">
-                <textarea
-                    rows={3}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Nhập nội dung trả lời..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                />
+                                <textarea
+                                    rows={3}
+                                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Nhập nội dung trả lời..."
+                                    value={newComment}
+                                    onChange={(e) => setNewComment(e.target.value)}
+                                />
                                 <div className="flex items-center gap-3 mt-2">
                                     <button
                                         onClick={() => setEmojiPickerVisible((v) => !v)}
@@ -299,13 +303,13 @@ function CommentBox() {
 
                     {!replyToId && (
                         <div className="mt-4">
-              <textarea
-                  rows={3}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Viết bình luận..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-              />
+                            <textarea
+                                rows={3}
+                                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Viết bình luận..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                            />
                             <div className="flex items-center gap-3 mt-2">
                                 <button
                                     onClick={() => setEmojiPickerVisible((v) => !v)}

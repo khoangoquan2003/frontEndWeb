@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
 import AudioPlayer from "./AudioPlayerPage";
+import { http } from "../../api/Http"; // 🔁 Replace fetch with http
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
@@ -17,19 +18,22 @@ export default function DictationPage() {
     const [audioUrl, setAudioUrl] = useState("");
     const [transcriptData, setTranscriptData] = useState([]);
 
-    // Fetch audio and transcript data from API
+    // ✅ Use http client to get audio + transcript
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const audioRes = await fetch("http://localhost:8080/api/get-main-audio?courseId=1");
-                const audioText = await audioRes.text();
-                setAudioUrl(audioText);
+                const audioRes = await http.get("/api/get-main-audio", {
+                    params: { courseId: 1 },
+                    responseType: "text", // If backend returns plain URL
+                });
+                setAudioUrl(audioRes.data);
 
-                const transcriptRes = await fetch("http://localhost:8080/api/get-transcript?courseId=1");
-                const transcriptJson = await transcriptRes.json();
-                setTranscriptData(transcriptJson);
+                const transcriptRes = await http.get("/api/get-transcript", {
+                    params: { courseId: 1 },
+                });
+                setTranscriptData(transcriptRes.data);
             } catch (err) {
-                console.error("Failed to fetch data:", err);
+                console.error("❌ Lỗi lấy dữ liệu dictation:", err);
             }
         };
 
@@ -46,11 +50,9 @@ export default function DictationPage() {
     };
 
     const handleSeek = (e) => {
-        if (audioRef.current) {
-            const value = Number(e.target.value);
-            audioRef.current.currentTime = value;
-            setCurrentTime(value);
-        }
+        const value = Number(e.target.value);
+        audioRef.current.currentTime = value;
+        setCurrentTime(value);
     };
 
     const handleDownload = () => {
@@ -104,7 +106,7 @@ export default function DictationPage() {
 
     return (
         <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
-            {/* Page Navigation */}
+            {/* Tabs */}
             <div className="flex justify-center mb-6 space-x-4">
                 <button
                     onClick={() => setCurrentPage("dictation")}
