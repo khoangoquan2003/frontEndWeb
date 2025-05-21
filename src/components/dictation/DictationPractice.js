@@ -1,15 +1,16 @@
-import {useRef, useState, useEffect} from "react";
-import {useSearchParams} from "react-router-dom";
-import {http} from "../../api/Http";
+import { useRef, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { http } from "../../api/Http";
 import TranslationBox from './TranslationBox';
 import PronunciationBox from './PronunciationBox';
 import CommentBox from './CommentBox';
 import Popup from "../Popup/Popup";
-import AudioPlayerPage  from "./AudioPlayerPage";
+import AudioPlayerPage from "./AudioPlayerPage";
 
 export default function DictationPractice() {
-    const [currentPage, setCurrentPage] = useState("dictation");
+    const [canProceed, setCanProceed] = useState(false);
 
+    const [currentPage, setCurrentPage] = useState("dictation");
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [searchParams] = useSearchParams();
     const courseId = parseInt(searchParams.get("courseId") || "1");
@@ -29,12 +30,14 @@ export default function DictationPractice() {
     const [loadingAnswer, setLoadingAnswer] = useState(false);
     const [correctAnswer, setCorrectAnswer] = useState("");
     const [audioUrl, setAudioUrl] = useState("");
-    const [translation, setTranslation] = useState({en: "", vi: ""});
+    const [translation, setTranslation] = useState({ en: "", vi: "" });
     const [pronunciation, setPronunciation] = useState({
         sentence: "",
-        words: []
+        words: [],
     });
     const [comments, setComments] = useState([]);
+    const [showMenu, setShowMenu] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false); // Track if audio is playing
 
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
@@ -42,29 +45,39 @@ export default function DictationPractice() {
         return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     };
 
-
     const loadCourseData = async () => {
         setLoading(true);
         try {
-            const res = await http.get(`/api/get-course`, {
-                params: {courseId},
-                withCredentials: false
+            const res = await http.get("/api/get-course", {
+                params: { courseId },
             });
 
-            const {sentences, sentenceAudios} = res.data.result;
+            const { sentences, sentenceAudios, comments, transcript } = res.data.result;
 
-            if (!sentences || !sentenceAudios || !sentenceAudios[0]) {
+            if (!sentences || !sentenceAudios || sentenceAudios.length === 0) {
                 console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
                 return;
             }
 
-            setSentences(sentences.map((text, i) => ({
-                correctAnswer: text,
-                audioUrl: sentenceAudios[i] || ""
-            })));
-            setCurrentSentenceIndex(0);
-            setCorrectAnswer(sentences[0]);
+            setSentences(
+                sentences.map((text, i) => ({
+                    correctAnswer: text,
+                    audioUrl: sentenceAudios[i] || "",
+                    pronunciation: [], // Không có dữ liệu phát âm
+                }))
+            );
+
+            const firstSentence = sentences[0];
+            setCorrectAnswer(firstSentence);
             setAudioUrl(sentenceAudios[0]);
+
+            setPronunciation({
+                sentence: firstSentence,
+                words: [],
+            });
+
+            setComments(comments || []);
+            setTranslation({ en: firstSentence, vi: "Chưa có bản dịch" });
 
             setInput("");
             setShowAnswer(false);
@@ -75,16 +88,32 @@ export default function DictationPractice() {
         }
     };
 
+    const handleDownload = (audioUrl) => {
+        if (!audioUrl) {
+            console.error("Không có URL âm thanh để tải về.");
+            return;
+        }
+
+        const link = document.createElement("a");
+        link.href = audioUrl;
+        link.download = audioUrl.split("/").pop();
+        link.click();
+    };
+
+    // Handle audio play/pause
     const handlePlay = () => {
         if (audioRef.current) {
-            audioRef.current.play().catch(error => {
-                console.error("Error playing audio:", error);
-            });
+            audioRef.current.play().catch((error) => console.error("Error playing audio:", error));
+            setIsPlaying(true);
         }
     };
 
-
-    const handlePause = () => audioRef.current?.pause();
+    const handlePause = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        }
+    };
 
     const handleSeek = (e) => {
         const newProgress = parseFloat(e.target.value);
@@ -121,36 +150,50 @@ export default function DictationPractice() {
         setLoadingAnswer(true);
 
         try {
-            const userInput = input.trim();
-            if (!userInput) {
-                setRevealedAnswer("Vui lòng nhập câu trả lời.");
+            const rawInput = input ? input.trim() : "";
+            console.log("Raw input:", rawInput);
+
+            if (!rawInput) {
+                setRevealedAnswer("⚠️ Vui lòng nhập câu trả lời.");
                 setShowAnswer(true);
                 return;
             }
 
-            const res = await http.post(
-                `/api/check-sentence?courseId=${courseId}`,
-                userInput,
-                {headers: {"Content-Type": "text/plain"}}
-            );
-
-            const result = res.data;
-
-            if (result.trim().toLowerCase().startsWith("correct")) {
-                setRevealedAnswer(result);
+            if (!courseId) {
+                console.error("⚠️ courseId không hợp lệ.");
+                setRevealedAnswer("❌ Không thể xác định khóa học.");
                 setShowAnswer(true);
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                loadNextSentence();
-            } else {
-                setRevealedAnswer(result);
-                setShowAnswer(true);
-
+                return;
             }
 
+            const normalize = (str) => str ? str.trim().toLowerCase() : "";
+
+            if (!correctAnswer) {
+                throw new Error("Đáp án đúng không có giá trị.");
+            }
+
+            const isCorrect = normalize(rawInput) === normalize(correctAnswer);
+            console.log("Is correct:", isCorrect);
+
+            if (isCorrect) {
+                setRevealedAnswer(`✅ Chính xác! Đáp án là: "${correctAnswer}"`);
+                setCanProceed(true);
+            } else {
+                const correctWords = correctAnswer.split(" ");
+                const inputWords = rawInput.split(" ");
+                const result = correctWords.map((word, index) => {
+                    return normalize(inputWords[index]) === normalize(word)
+                        ? word
+                        : "*".repeat(word.length);
+                }).join(" ");
+
+                setRevealedAnswer(`❌ Không đúng.\n${result}`);
+                setCanProceed(false);
+            }
+
+            setShowAnswer(true);
         } catch (error) {
             console.error("❌ Lỗi khi kiểm tra câu:", error);
-            setRevealedAnswer("❌ Lỗi server! Không kiểm tra được câu trả lời.");
-            setShowAnswer(true);
         } finally {
             setLoadingAnswer(false);
         }
@@ -167,13 +210,12 @@ export default function DictationPractice() {
             setCorrectAnswer(next.correctAnswer);
             setAudioUrl(next.audioUrl);
 
-            // Set pronunciation for the next sentence
             setPronunciation({
                 sentence: next.correctAnswer,
-                words: next.pronunciation.map(word => ({
+                words: next.pronunciation.map((word) => ({
                     word: word.text,
-                    audioUrl: word.audioUrl
-                }))
+                    audioUrl: word.audioUrl,
+                })),
             });
 
             if (audioRef.current) {
@@ -187,9 +229,7 @@ export default function DictationPractice() {
 
     const playWordPronunciation = (wordAudioUrl) => {
         const audio = new Audio(wordAudioUrl);
-        audio.play().catch(error => {
-            console.error("Error playing word pronunciation:", error);
-        });
+        audio.play().catch((error) => console.error("Error playing word pronunciation:", error));
     };
 
     useEffect(() => {
@@ -203,12 +243,8 @@ export default function DictationPractice() {
     }, [currentTime, duration]);
 
     return (
-        <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
-            <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
-
-            {/* Audio and Info side by side */}
+        <div className="bg-white shadow-xl rounded-xl w-full max-w-[100%] mt-0 mb-[-2px] ml-[-4px] mr-[-4px] border-l-[2px] border-r-[2px] border-gray-300 pt-2 px-2">
             <div className="flex flex-col md:flex-row gap-6 items-start">
-                {/* Audio + Textarea */}
                 <div className="flex-1 space-y-3">
                     <audio
                         ref={audioRef}
@@ -216,80 +252,131 @@ export default function DictationPractice() {
                         preload="auto"
                         onLoadedMetadata={(e) => setDuration(e.target.duration)}
                         onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                        className="mb-2"
                     />
-
-                    {/* Timebar */}
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 w-12">{formatTime(currentTime)}</span>
-                        <input
-                            type="range"
-                            min="0"
-                            max="100"
-                            value={progress}
-                            onChange={handleSeek}
-                            className="flex-grow"
-                        />
-                        <span className="text-sm text-gray-600 w-12 text-right">{formatTime(duration)}</span>
-                    </div>
-
                     {/* Controls */}
-                    <div className="space-x-2">
-                        <button onClick={handlePlay}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">▶️ Nghe
-                        </button>
-                        <button onClick={handlePause}
-                                className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">⏸ Dừng
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {[1.0, 1.25, 1.5, 1.75, 2.0].map((rate) => (
+                    <div className="flex items-center border p-1 rounded-full justify-between mb-2">
+                        <div className="flex items-center gap-3 mr-2">
                             <button
-                                key={rate}
-                                onClick={() => handleChangeSpeed(rate)}
-                                className={`px-3 py-1 rounded border ${playbackRate === rate ? "bg-blue-500 text-white" : "bg-white text-gray-800"}`}
+                                onClick={isPlaying ? handlePause : handlePlay}
+                                className="w-8 h-8 flex justify-center items-center rounded-sm bg-white hover:bg-gray-100 transition-colors duration-150"
                             >
-                                {rate}x
+                                {isPlaying ? (
+                                    // Pause: hai thanh đứng
+                                    <div className="flex gap-[2px]">
+                                        <div className="w-[3px] h-4 bg-black" />
+                                        <div className="w-[3px] h-4 bg-black" />
+                                    </div>
+                                ) : (
+                                    // Play: tam giác nhỏ màu đen
+                                    <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black ml-[2px]" />
+                                )}
                             </button>
-                        ))}
-                        <button onClick={toggleMute} className="text-xl ml-2">
-                            {isMuted || volume === 0 ? "🔇" : "🔊"}
-                        </button>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={isMuted ? 0 : volume}
-                            onChange={handleVolumeChange}
-                            className="w-28"
-                        />
+
+
+
+                        </div>
+                        <div className="flex flex-1 items-center gap-1">
+                            <span className="text-sm text-gray-600 w-10">{formatTime(currentTime)}</span>
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={progress}
+                                onChange={handleSeek}
+                                className="flex-grow"
+                            />
+                            <span className="text-sm text-gray-600 w-10 text-right">{formatTime(duration)}</span>
+                        </div>
+                        {/* Volume control */}
+                        <div className="mx-2 relative">
+                            <button
+                                onClick={() => setShowVolumeSlider((prev) => !prev)}
+                                className="w-8 h-8 flex justify-center items-center text-black bg-white hover:bg-gray-100 rounded-sm transition-colors duration-150 text-lg"
+                            >
+                                {isMuted || volume === 0 ? "🔇" : "🔊"}
+                            </button>
+
+                            {showVolumeSlider && (
+                                <div className="absolute top-12 right-0 bg-white shadow-md rounded-md px-3 py-2 w-32">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value={isMuted ? 0 : volume}
+                                        onChange={handleVolumeChange}
+                                        className="w-full"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        {/* Menu for playback speed and download */}
+                        <div className="mx-2 relative">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="px-3 py-2  text-xl hover:bg-gray-400"
+                            >
+                                ⋮
+                            </button>
+                            {showMenu && (
+                                <div className="absolute top-12 right-0 bg-white border border-black rounded-sm w-32 p-2 space-y-2 shadow-none">
+                                    {[1.0, 1.25, 1.5, 2.0].map((rate) => (
+                                        <button
+                                            key={rate}
+                                            onClick={() => handleChangeSpeed(rate)}
+                                            className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors duration-150 ${
+                                                playbackRate === rate
+                                                    ? "bg-black text-white"
+                                                    : "bg-white text-black hover:bg-black hover:text-white"
+                                            }`}
+                                        >
+                                            {rate}x
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => handleDownload(audioUrl)}
+                                        className="w-full text-left px-2 py-1 text-sm rounded-sm bg-white text-black hover:bg-black hover:text-white transition-colors duration-150"
+                                    >
+                                        📥 Tải xuống
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* 👇 Textarea gọn bên dưới audio */}
+                    {/* Input and Check buttons */}
                     <textarea
                         rows={4}
                         placeholder="Gõ lại đoạn bạn vừa nghe..."
-                        className="w-full p-2 border border-gray-300 rounded"
+                        className="w-full p-2 border border-gray-300 rounded mb-2"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                     />
-
                     <div className="space-x-2 mt-2">
                         <button
                             onClick={handleCheck}
                             className={`px-4 py-2 ${loadingAnswer ? "bg-gray-500 cursor-not-allowed" : "bg-green-600"} text-white rounded hover:bg-green-700`}
                             disabled={loadingAnswer}
                         >
-                            {loadingAnswer ? "Đang kiểm tra..." : "✔️ Kiểm tra"}
+                            {loadingAnswer ? "Đang kiểm tra..." : "Kiểm tra"}
                         </button>
 
                         <button
                             onClick={loadNextSentence}
                             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                         >
-                            ⏭ Bỏ qua
+                            Bỏ qua
                         </button>
+
+                        {canProceed && (
+                            <button
+                                onClick={loadNextSentence}
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                            >
+                                Câu tiếp theo
+                            </button>
+                        )}
                     </div>
 
                     {showAnswer && (
@@ -299,33 +386,26 @@ export default function DictationPractice() {
                     )}
                 </div>
 
-                {/* Info boxes */}
                 <div className="flex-1 grid gap-4 w-full">
-                    {/* TranslationBox with Language Dropdown */}
-                    <TranslationBox translation={translation || {en: "No translation available"}}/>
-
-                    {/* PronunciationBox with clickable words for pronunciation */}
-                    <div className="border p-3 rounded bg-white shadow">
+                    <TranslationBox translation={translation || { en: "No translation available" }} />
+                    <div className="border p-3 rounded bg-white shadow mb-2">
                         <h2 className="text-lg font-semibold mb-2">🔊 Phát âm</h2>
                         <PronunciationBox
                             sentence={pronunciation.sentence}
                             wordPronunciations={pronunciation.words}
                             onWordClick={playWordPronunciation}
                         />
+                        <Popup />
                     </div>
 
-                    {/* CommentBox to display comments */}
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]}/>
+                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]} />
                     </div>
                 </div>
-
             </div>
 
-            {loading && (
-                <div className="text-center mt-4 text-blue-600">Đang tải câu tiếp theo...</div>
-            )}
+            {loading && <div className="text-center mt-4 text-blue-600">Đang tải câu tiếp theo...</div>}
         </div>
     );
 }
