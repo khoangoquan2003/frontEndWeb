@@ -400,7 +400,7 @@ export default function DictationPractice() {
 
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]} />
+                        <CommentBox initialComments={comments} courseId={courseId} />
                     </div>
                 </div>
             </div>

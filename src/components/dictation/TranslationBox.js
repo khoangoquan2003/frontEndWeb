@@ -15,9 +15,9 @@ export default function TranslationBox({ courseId = 1 }) {
         it: "Italiano",
     };
 
-    // Hàm lấy dữ liệu khóa học và dịch câu
+    // Hàm lấy dữ liệu khóa học
     useEffect(() => {
-        async function fetchAndTranslate() {
+        async function fetchCourseData() {
             setLoading(true);
             setError(null); // Reset lỗi trước khi bắt đầu
             try {
@@ -29,28 +29,22 @@ export default function TranslationBox({ courseId = 1 }) {
                 const data = await res.json();
                 const { sentences } = data.result;
 
-                // Dịch tất cả câu song song
-                const translationsArray = await Promise.all(
-                    sentences.map((sentence) =>
-                        translateSentence(sentence, selectedLang)
-                    )
-                );
-
+                // Ở đây chúng ta chỉ lưu lại câu gốc mà không dịch
                 const sentenceTranslations = {};
-                sentences.forEach((sentence, index) => {
-                    sentenceTranslations[sentence] = translationsArray[index];
+                sentences.forEach((sentence) => {
+                    sentenceTranslations[sentence] = sentence; // Chỉ lưu lại câu gốc
                 });
 
                 setTranslations(sentenceTranslations);
             } catch (error) {
-                console.error("Lỗi khi lấy hoặc dịch dữ liệu:", error);
-                setError("Đã xảy ra lỗi khi tải hoặc dịch dữ liệu.");
+                console.error("Lỗi khi lấy dữ liệu:", error);
+                setError("Đã xảy ra lỗi khi tải dữ liệu.");
             } finally {
                 setLoading(false);
             }
         }
 
-        fetchAndTranslate();
+        fetchCourseData();
     }, [courseId, selectedLang]);
 
     // Hàm dịch văn bản sử dụng API LibreTranslate
@@ -67,7 +61,6 @@ export default function TranslationBox({ courseId = 1 }) {
             return sentence; // Fallback to returning the original word if error occurs.
         }
     };
-
     const handleLanguageChange = (e) => {
         setSelectedLang(e.target.value);
     };
@@ -102,7 +95,7 @@ export default function TranslationBox({ courseId = 1 }) {
                         <div key={index} className="text-gray-800">
                             <div className="font-semibold">{sentence}</div>
                             <div className="italic">
-                                {translations[sentence] || sentence} {/* Hiển thị lại câu gốc nếu không có bản dịch */}
+                                {translations[sentence]} {/* Hiển thị câu gốc mà không dịch */}
                             </div>
                         </div>
                     ))
