@@ -24,19 +24,23 @@ const TopicList = () => {
                 <h1 className="text-4xl font-bold mb-10 text-center text-gray-800">All Topics</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     {topics.map((topic, index) => (
-                        <div key={index} className="bg-white shadow-lg p-6 rounded-xl flex items-center space-x-6 transition hover:shadow-xl">
+                        <Link
+                            key={index}
+                            to={topic.link}
+                            className="bg-white shadow-lg p-6 rounded-xl flex items-center space-x-6 transition hover:shadow-xl hover:bg-gray-50"
+                        >
                             <img src={topic.icon} alt={topic.title} className="w-20 h-20 rounded-md object-cover" />
                             <div>
-                                <Link to={topic.link} className="text-xl font-semibold text-blue-700 hover:underline">
+                                <div className="text-xl font-semibold text-blue-700 hover:underline">
                                     {topic.title}
-                                </Link>
+                                </div>
                                 <p className="text-sm text-gray-600 mt-1">Levels: {topic.level}</p>
                                 <div className="text-sm text-gray-500 flex items-center space-x-1 mt-1">
                                     <span>{topic.type === 'audio' ? '🎧' : '🎥'}</span>
                                     <span>{topic.lessons} lessons</span>
                                 </div>
                             </div>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             </div>

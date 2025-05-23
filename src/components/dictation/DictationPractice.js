@@ -9,6 +9,7 @@ import AudioPlayerPage from "./AudioPlayerPage";
 
 export default function DictationPractice() {
     const [canProceed, setCanProceed] = useState(false);
+    const [showExtras, setShowExtras] = useState(false);
 
     const [currentPage, setCurrentPage] = useState("dictation");
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -178,6 +179,7 @@ export default function DictationPractice() {
             if (isCorrect) {
                 setRevealedAnswer(`✅ Chính xác! Đáp án là: "${correctAnswer}"`);
                 setCanProceed(true);
+                setShowExtras(true); // ✅ hiển thị khi đúng
             } else {
                 const correctWords = correctAnswer.split(" ");
                 const inputWords = rawInput.split(" ");
@@ -205,6 +207,7 @@ export default function DictationPractice() {
             setCurrentSentenceIndex(nextIndex);
             setInput("");
             setShowAnswer(false);
+            setShowExtras(true); // ✅ hiển thị sau khi bấm "Bỏ qua"
 
             const next = sentences[nextIndex];
             setCorrectAnswer(next.correctAnswer);
@@ -386,21 +389,27 @@ export default function DictationPractice() {
                     )}
                 </div>
 
-                <div className="flex-1 grid gap-4 w-full">
-                    <TranslationBox translation={translation || { en: "No translation available" }} />
-                    <div className="border p-3 rounded bg-white shadow mb-2">
-                        <h2 className="text-lg font-semibold mb-2">🔊 Phát âm</h2>
-                        <PronunciationBox
-                            sentence={pronunciation.sentence}
-                            wordPronunciations={pronunciation.words}
-                            onWordClick={playWordPronunciation}
-                        />
-                        <Popup />
-                    </div>
+                <div
+                    className="border rounded bg-white shadow p-4 flex flex-col gap-6 flex-1"
+                    style={{ minHeight: 450, width: "100%" }}
+                >
+                    <div style={{ display: showExtras ? "block" : "none", flexGrow: 1, overflowY: "auto" }}>
+                        <TranslationBox translation={translation || { en: "No translation available" }} />
 
-                    <div className="border p-3 rounded bg-white shadow">
-                        <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                        <CommentBox initialComments={comments} courseId={courseId} />
+                        <div className="border p-3 rounded bg-white shadow mt-4">
+                            <h2 className="text-lg font-semibold mb-2">🔊 Phát âm</h2>
+                            <PronunciationBox
+                                sentence={pronunciation.sentence}
+                                wordPronunciations={pronunciation.words}
+                                onWordClick={playWordPronunciation}
+                            />
+                            <Popup />
+                        </div>
+
+                        <div className="border p-3 rounded bg-white shadow mt-4">
+                            <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
+                            <CommentBox initialComments={comments} courseId={courseId} />
+                        </div>
                     </div>
                 </div>
             </div>

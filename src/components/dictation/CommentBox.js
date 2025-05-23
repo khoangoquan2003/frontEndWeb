@@ -1,67 +1,36 @@
 import React, { useState, useEffect } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { http } from "../../api/Http"; // Đường dẫn API của bạn
-
-const reactions = {
-    Like: "👍",
-    Love: "❤️",
-    Care: "🥰",
-    Haha: "😄",
-    Wow: "😮",
-    Sad: "😢",
-    Angry: "😠",
-};
+import { http } from "../../api/Http";
 
 function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [comments, setComments] = useState([]);
     const [commentCount, setCommentCount] = useState(0);
-    const [isCommentsOpen, setIsCommentsOpen] = useState(true);
+    const [isCommentsOpen, setIsCommentsOpen] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [replyToId, setReplyToId] = useState(null);
     const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
-    const [hoverReactionFor, setHoverReactionFor] = useState(null);
-    const [hoverTimeout, setHoverTimeout] = useState(null);
     const [allReactions, setAllReactions] = useState({});
+    const [editingCommentId, setEditingCommentId] = useState(null);
+    const [editContent, setEditContent] = useState("");
 
-    const userId = 1; // Giả lập ID người dùng
-    const courseId = 3; // Giả lập ID khóa học
+    const userId = 1; // giả lập userId
+    const courseId = 3; // giả lập courseId
 
     useEffect(() => {
         fetchComments();
         fetchAllReactions();
-        setIsCommentsOpen(true);
     }, []);
 
     async function fetchComments() {
         try {
             const res = await http.get("/api/get-all-comment", { params: { courseId } });
             let data = res.data;
-            console.log("Comments from API:", data.result);
 
-            // Nếu không có dữ liệu thì tạo mẫu bình luận mặc định
             if (!Array.isArray(data.result)) {
                 data.result = [
-                    {
-                        id: 1,
-                        content: "This course is very helpful!",
-                        user: { userName: "Alice" },
-                        parentId: null,
-                        createDate: new Date().toISOString(),
-                    },
-                    {
-                        id: 2,
-                        content: "Thanks for the explanation!",
-                        user: { userName: "Bob" },
-                        parentId: 1,
-                        createDate: new Date().toISOString(),
-                    },
-                    {
-                        id: 3,
-                        content: "I'm enjoying the course!",
-                        user: { userName: "Charlie" },
-                        parentId: null,
-                        createDate: new Date().toISOString(),
-                    },
+                    { id: 1, content: "This course is very helpful!", user: { userName: "Alice" }, parentId: null, createDate: new Date().toISOString() },
+                    { id: 2, content: "Thanks for the explanation!", user: { userName: "Bob" }, parentId: 1, createDate: new Date().toISOString() },
+                    { id: 3, content: "I'm enjoying the course!", user: { userName: "Charlie" }, parentId: null, createDate: new Date().toISOString() },
                 ];
             }
 
@@ -122,22 +91,26 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         }
     }
 
-    async function handleSendReaction(commentId, reaction) {
+    async function handleToggleLike(commentId) {
         try {
-            const { currentUserReaction } = getReactionSummary(commentId);
+            const currentUserReaction = getReactionSummary(commentId).currentUserReaction;
 
-            if (currentUserReaction === reaction) {
-                await http.get("/api/delete-reaction", { params: { commentId, userId, reaction } });
-            } else if (currentUserReaction) {
-                await http.post("/api/change-reaction", { commentId, userId, reaction });
+            if (currentUserReaction === "Like") {
+                // Bỏ like
+                await http.get("/api/delete-reaction", { params: { commentId, userId, reaction: "Like" } });
             } else {
-                await http.post("/api/reaction", { userId, commentId, courseId, reaction });
+                if (currentUserReaction) {
+                    // Nếu có reaction khác (nhưng giờ chỉ có Like nên ko cần)
+                    await http.post("/api/change-reaction", { commentId, userId, reaction: "Like" });
+                } else {
+                    // Thêm like mới
+                    await http.post("/api/reaction", { userId, commentId, courseId, reaction: "Like" });
+                }
             }
 
             fetchAllReactions();
-            setHoverReactionFor(null);
         } catch (error) {
-            console.error("Error handling reaction:", error);
+            console.error("Error toggling like:", error);
         }
     }
 
@@ -191,45 +164,15 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
     function getReactionSummary(commentId) {
         const reactionsList = allReactions[commentId] || [];
-        const countByType = {};
         let currentUserReaction = null;
 
         reactionsList.forEach((r) => {
-            countByType[r.reaction] = (countByType[r.reaction] || 0) + 1;
             if (r.userId === userId) {
                 currentUserReaction = r.reaction;
             }
         });
 
-        return { countByType, currentUserReaction };
-    }
-
-    function handleEmojiClick(emojiData) {
-        setNewComment((prev) => prev + emojiData.emoji);
-    }
-
-    function toggleEmojiPicker() {
-        setEmojiPickerVisible((prev) => !prev);
-    }
-
-    async function handleDeleteComment(commentId) {
-        try {
-            await http.delete(`/api/comment/${commentId}`, { params: { userId, courseId } });
-
-            setComments((prev) => deleteCommentById(prev, commentId));
-            setCommentCount((prev) => prev - 1);
-        } catch (error) {
-            console.error("Error deleting comment:", error);
-        }
-    }
-
-    function deleteCommentById(comments, commentId) {
-        return comments
-            .filter((c) => c.id !== commentId)
-            .map((c) => ({
-                ...c,
-                replies: deleteCommentById(c.replies || [], commentId),
-            }));
+        return { currentUserReaction };
     }
 
     function timeAgo(date) {
@@ -249,52 +192,145 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         return `${diffInYears} years ago`;
     }
 
+    function startEditing(comment) {
+        setEditingCommentId(comment.id);
+        setEditContent(comment.content);
+        setReplyToId(null);
+        setEmojiPickerVisible(false);
+    }
+
+    async function handleSaveEdit(commentId) {
+        if (!editContent.trim()) return alert("Content cannot be empty");
+
+        try {
+            // Giả sử backend có api PUT /api/comment/:id để update comment
+            await http.put(`/api/comment/${commentId}`, {
+                content: editContent,
+                userId,
+                courseId,
+            });
+
+            // Update trong state
+            setComments((prev) => updateCommentContent(prev, commentId, editContent));
+            setEditingCommentId(null);
+            setEditContent("");
+        } catch (error) {
+            console.error("Error editing comment:", error);
+        }
+    }
+
+    function updateCommentContent(comments, commentId, newContent) {
+        return comments.map((comment) => {
+            if (comment.id === commentId) {
+                return { ...comment, content: newContent };
+            }
+            if (comment.replies?.length) {
+                return { ...comment, replies: updateCommentContent(comment.replies, commentId, newContent) };
+            }
+            return comment;
+        });
+    }
+
     function renderComment(comment, level = 0) {
-        const { countByType, currentUserReaction } = getReactionSummary(comment.id);
+        const { currentUserReaction } = getReactionSummary(comment.id);
         const indentClass = `ml-${Math.min(level * 4, 12)}`;
 
         return (
+
             <div key={comment.id} className={`mb-4 ${indentClass}`}>
                 <div className="flex space-x-3">
                     <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">
-                        {comment.userName?.[0]?.toUpperCase() || "U"}
+                        {comment.user?.userName?.[0]?.toUpperCase() || "U"}
                     </div>
 
                     <div className="flex-1 text-sm text-gray-600">
                         <div className="font-semibold">
-                            {comment.userName}
-                            <span className="text-gray-400 text-xs">({timeAgo(comment.createDate)})</span>
+                            {comment.user?.userName}
+                            <span className="text-gray-400 text-xs ml-2">({timeAgo(comment.createDate)})</span>
                         </div>
 
-                        <p className="mt-1">{comment.content}</p>
-
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                            {Object.entries(countByType).map(([key, count]) => (
-                                <div
-                                    key={key}
-                                    onClick={() => handleSendReaction(comment.id, key)}
-                                    className={`text-sm px-2 py-1 border rounded-full cursor-pointer flex items-center gap-1 ${
-                                        currentUserReaction === key ? "bg-blue-100 border-blue-400" : "bg-gray-100"
-                                    }`}
-                                >
-                                    <span>{reactions[key]}</span>
-                                    <span>{count}</span>
+                        {editingCommentId === comment.id ? (
+                            <div>
+    <textarea
+        rows={3}
+        className="w-full p-2 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={editContent}
+        onChange={(e) => setEditContent(e.target.value)}
+        placeholder="Edit your comment..."
+        maxLength={500}
+        autoFocus
+    />
+                                <div className="text-right text-xs text-gray-500 mt-1">
+                                    {editContent.length} / 500
                                 </div>
-                            ))}
+                                <div className="flex gap-2 mt-2">
+                                    <button
+                                        onClick={() => handleSaveEdit(comment.id)}
+                                        className="bg-green-600 hover:bg-green-700 transition text-white px-4 py-1 rounded"
+                                        disabled={!editContent.trim()}
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingCommentId(null);
+                                            setEditContent("");
+                                        }}
+                                        className="bg-red-600 hover:bg-red-700 transition text-white px-4 py-1 rounded"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="mt-1">{comment.content}</p>
+                        )}
+
+
+                        {/* Like / Unlike */}
+                        <div className="mt-2 flex items-center gap-4">
+                            <button
+                                onClick={() => handleToggleLike(comment.id)}
+                                className={`px-3 py-1 rounded ${
+                                    currentUserReaction === "Like" ? "bg-blue-600 text-white" : "bg-gray-200"
+                                }`}
+                            >
+                                {currentUserReaction === "Like" ? "Unlike" : "Like"}
+                            </button>
+
+                            {/* Reply */}
+                            <button
+                                className="text-blue-600 underline"
+                                onClick={() => {
+                                    setReplyToId(comment.id);
+                                    setNewComment("");
+                                    setEmojiPickerVisible(false);
+                                    setEditingCommentId(null);
+                                }}
+                            >
+                                Reply
+                            </button>
+
+                            {/* Edit */}
+                            {comment.user?.userName === "You" && editingCommentId !== comment.id && (
+                                <button
+                                    className="text-green-600 underline"
+                                    onClick={() => startEditing(comment)}
+                                >
+                                    Edit
+                                </button>
+                            )}
+
+                            {/* Delete */}
+                            <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-red-600 underline"
+                            >
+                                Delete
+                            </button>
                         </div>
 
-                        <div
-                            className="text-sm text-blue-600 mt-1 cursor-pointer hover:underline"
-                            onClick={() => {
-                                setReplyToId(comment.id);
-                                setNewComment("");
-                                setEmojiPickerVisible(false);
-                            }}
-                        >
-                            Reply
-                        </div>
-
-                        {replyToId === comment.id && (
+                        {replyToId === comment.id && editingCommentId === null && (
                             <div className="mt-2">
                                 <textarea
                                     rows={3}
@@ -321,16 +357,9 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                                         Cancel
                                     </button>
                                 </div>
-                                {emojiPickerVisible && <EmojiPicker onEmojiClick={handleEmojiClick} />}
+                                {emojiPickerVisible && <EmojiPicker onEmojiClick={(e) => setNewComment((prev) => prev + e.emoji)} />}
                             </div>
                         )}
-
-                        <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-red-600 text-sm mt-2 cursor-pointer hover:underline"
-                        >
-                            Delete
-                        </button>
 
                         {comment.replies?.length > 0 && (
                             <div className="mt-3">
@@ -341,6 +370,29 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 </div>
             </div>
         );
+    }
+
+    async function handleDeleteComment(commentId) {
+        try {
+            await http.delete(`/api/comment/${commentId}`, { params: { userId, courseId } });
+            setComments((prev) => deleteCommentById(prev, commentId));
+            setCommentCount((prev) => prev - 1);
+        } catch (error) {
+            console.error("Error deleting comment:", error);
+        }
+    }
+
+    function deleteCommentById(comments, commentId) {
+        return comments
+            .filter((c) => c.id !== commentId)
+            .map((c) => ({
+                ...c,
+                replies: deleteCommentById(c.replies || [], commentId),
+            }));
+    }
+
+    function toggleEmojiPicker() {
+        setEmojiPickerVisible((prev) => !prev);
     }
 
     return (
@@ -359,7 +411,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 <div className="space-y-6">
                     {comments.map(renderComment)}
 
-                    {!replyToId && (
+                    {!replyToId && editingCommentId === null && (
                         <div className="mt-4">
                             <textarea
                                 rows={3}
@@ -369,22 +421,16 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                                 onChange={(e) => setNewComment(e.target.value)}
                             />
                             <div className="flex items-center gap-3 mt-2">
-                                <button
-                                    onClick={toggleEmojiPicker}
-                                    className="px-3 py-1 bg-gray-600 text-white rounded"
-                                >
+                                <button onClick={toggleEmojiPicker} className="px-3 py-1 bg-gray-600 text-white rounded">
                                     😀
                                 </button>
-                                <button
-                                    onClick={handleSubmitComment}
-                                    className="px-4 py-1 bg-green-600 text-white rounded"
-                                >
+                                <button onClick={handleSubmitComment} className="px-4 py-1 bg-green-600 text-white rounded">
                                     Submit
                                 </button>
                             </div>
                             {emojiPickerVisible && (
                                 <div className="mt-2">
-                                    <EmojiPicker onEmojiClick={handleEmojiClick} />
+                                    <EmojiPicker onEmojiClick={(e) => setNewComment((prev) => prev + e.emoji)} />
                                 </div>
                             )}
                         </div>
