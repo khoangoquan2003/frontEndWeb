@@ -36,6 +36,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         try {
             const res = await http.get("/api/get-all-comment", { params: { courseId } });
             let data = res.data;
+            console.log("Comments from API:", data.result);
 
             // Nếu không có dữ liệu thì tạo mẫu bình luận mặc định
             if (!Array.isArray(data.result)) {
@@ -256,13 +257,15 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             <div key={comment.id} className={`mb-4 ${indentClass}`}>
                 <div className="flex space-x-3">
                     <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">
-                        {comment.user.userName?.[0]?.toUpperCase() || "U"}
+                        {comment.userName?.[0]?.toUpperCase() || "U"}
                     </div>
+
                     <div className="flex-1 text-sm text-gray-600">
                         <div className="font-semibold">
-                            {comment.user.userName}{" "}
+                            {comment.userName}
                             <span className="text-gray-400 text-xs">({timeAgo(comment.createDate)})</span>
                         </div>
+
                         <p className="mt-1">{comment.content}</p>
 
                         <div className="flex gap-2 mt-2 flex-wrap">
