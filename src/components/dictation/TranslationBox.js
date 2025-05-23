@@ -1,80 +1,121 @@
 import { useState, useEffect } from "react";
+import { http } from "../../api/Http";
 
 export default function TranslationBox({ courseId = 1 }) {
+    const [sentences, setSentences] = useState([]);
     const [translations, setTranslations] = useState({});
     const [selectedLang, setSelectedLang] = useState("vi");
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null); // Thêm state để xử lý lỗi
+    const [error, setError] = useState(null);
+
+    const [userInputText, setUserInputText] = useState("");
+    const [translatedText, setTranslatedText] = useState("");
 
     const languageLabels = {
         en: "English",
         vi: "Tiếng Việt",
-        fr: "Français",
-        es: "Español",
-        de: "Deutsch",
-        it: "Italiano",
     };
 
-    // Hàm lấy dữ liệu khóa học
+    const uiText = {
+        title: {
+            en: "🌐 Translations",
+            vi: "🌐 Dịch nghĩa",
+        },
+        loading: {
+            en: "Loading data...",
+            vi: "Đang tải dữ liệu...",
+        },
+        error: {
+            en: "An error occurred while loading the data.",
+            vi: "Đã xảy ra lỗi khi tải dữ liệu.",
+        },
+        empty: {
+            en: "There are no sentences to translate.",
+            vi: "Không có câu để dịch.",
+        },
+    };
+
+    const translateSentence = async (sentence, targetLang) => {
+        if (!sentence) return "";
+        try {
+            const res = await fetch("https://libretranslate.de/translate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    q: sentence,
+                    source: "en",
+                    target: targetLang,
+                    format: "text",
+                }),
+            });
+            const data = await res.json();
+            return data?.translatedText || sentence;
+        } catch (err) {
+            console.error("Translation error:", err);
+            return sentence;
+        }
+    };
+
     useEffect(() => {
         async function fetchCourseData() {
             setLoading(true);
-            setError(null); // Reset lỗi trước khi bắt đầu
+            setError(null);
             try {
-                // Lấy dữ liệu khóa học từ API backend (hoặc từ một nguồn khác)
-                const res = await fetch(`/api/get-course?courseId=${courseId}`);
-                if (!res.ok) {
-                    throw new Error("Không thể tải dữ liệu khóa học.");
-                }
-                const data = await res.json();
+                const { data } = await http.get(`/api/get-course?courseId=${courseId}`);
                 const { sentences } = data.result;
-
-                // Ở đây chúng ta chỉ lưu lại câu gốc mà không dịch
-                const sentenceTranslations = {};
-                sentences.forEach((sentence) => {
-                    sentenceTranslations[sentence] = sentence; // Chỉ lưu lại câu gốc
-                });
-
-                setTranslations(sentenceTranslations);
+                setSentences(sentences);
             } catch (error) {
-                console.error("Lỗi khi lấy dữ liệu:", error);
-                setError("Đã xảy ra lỗi khi tải dữ liệu.");
+                console.error("Error loading course data:", error);
+                setError(uiText.error[selectedLang] || uiText.error["en"]);
             } finally {
                 setLoading(false);
             }
         }
 
         fetchCourseData();
-    }, [courseId, selectedLang]);
+    }, [courseId]);
 
-    // Hàm dịch văn bản sử dụng API LibreTranslate
-    const translateSentence = async (sentence, lang) => {
-        try {
-            const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${sentence}`);
-            if (!response.ok) {
-                throw new Error("Word not found");
+    useEffect(() => {
+        async function translateAllSentences() {
+            setLoading(true);
+            const sentenceTranslations = {};
+
+            for (const sentence of sentences) {
+                const translated = await translateSentence(sentence, selectedLang);
+                sentenceTranslations[sentence] = translated;
             }
-            const data = await response.json();
-            return data.meaning; // Assuming it returns a definition.
-        } catch (error) {
-            console.error("Error:", error);
-            return sentence; // Fallback to returning the original word if error occurs.
+
+            setTranslations(sentenceTranslations);
+            setLoading(false);
+        }
+
+        if (sentences.length > 0) {
+            translateAllSentences();
+        }
+    }, [sentences, selectedLang]);
+
+    const handleTranslateCustomText = async () => {
+        if (!userInputText.trim()) return;
+        setLoading(true);
+        try {
+            const translated = await translateSentence(userInputText, selectedLang);
+            setTranslatedText(translated);
+        } catch (err) {
+            console.error("Error translating custom text:", err);
+            setTranslatedText(uiText.error[selectedLang] || uiText.error["en"]);
+        } finally {
+            setLoading(false);
         }
     };
-    const handleLanguageChange = (e) => {
-        setSelectedLang(e.target.value);
-    };
-
-    const sentences = Object.keys(translations);
 
     return (
         <div className="border p-3 rounded bg-white shadow">
-            <h2 className="text-lg font-semibold mb-2">🌐 Dịch nghĩa</h2>
+            <h2 className="text-lg font-semibold mb-2">{uiText.title[selectedLang]}</h2>
 
             <div className="mb-2">
                 <select
                     value={selectedLang}
-                    onChange={handleLanguageChange}
+                    onChange={(e) => setSelectedLang(e.target.value)}
                     className="px-3 py-2 border rounded bg-white text-gray-700 w-full"
                 >
                     {Object.keys(languageLabels).map((lang) => (
@@ -85,24 +126,30 @@ export default function TranslationBox({ courseId = 1 }) {
                 </select>
             </div>
 
-            {error && <div className="text-red-500">{error}</div>} {/* Hiển thị thông báo lỗi */}
+            {error && <div className="text-red-500">{error}</div>}
 
             <div className="space-y-4">
                 {loading ? (
-                    <div>Đang tải dữ liệu...</div>
+                    <div>{uiText.loading[selectedLang]}</div>
                 ) : sentences.length > 0 ? (
                     sentences.map((sentence, index) => (
                         <div key={index} className="text-gray-800">
-                            <div className="font-semibold">{sentence}</div>
-                            <div className="italic">
-                                {translations[sentence]} {/* Hiển thị câu gốc mà không dịch */}
+                            <div
+                                className="font-semibold cursor-pointer hover:text-blue-600"
+                                onClick={() => setUserInputText(sentence)}
+                            >
+                                {sentence}
+                            </div>
+                            <div className="italic text-green-700">
+                                {translations[sentence] || "..."}
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div>Không có câu để dịch.</div>
+                    <div>{uiText.empty[selectedLang]}</div>
                 )}
             </div>
+
         </div>
     );
 }

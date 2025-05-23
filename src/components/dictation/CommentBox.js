@@ -308,7 +308,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                                         😀
                                     </button>
                                     <button onClick={handleSubmitComment} className="bg-green-600 text-white px-4 py-1 rounded">
-                                        Send
+                                        Submit
                                     </button>
                                     <button
                                         onClick={() => {
@@ -379,7 +379,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                                     onClick={handleSubmitComment}
                                     className="px-4 py-1 bg-green-600 text-white rounded"
                                 >
-                                    Send
+                                    Submit
                                 </button>
                             </div>
                             {emojiPickerVisible && (
