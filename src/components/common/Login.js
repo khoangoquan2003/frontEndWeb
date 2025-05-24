@@ -11,7 +11,14 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError('');
+        setError(''); // Reset error message before each login attempt
+
+        // Simple email validation check
+        const isEmail = userName.includes('@');
+        if (isEmail && !/\S+@\S+\.\S+/.test(userName)) {
+            setError("Please enter a valid email address.");
+            return;
+        }
 
         try {
             const response = await axios.post("http://localhost:8080/auth/test-log-in", {
@@ -25,22 +32,21 @@ const Login = () => {
             const nickname = response.data?.result?.nickName;
             const userId = response.data?.result?.userId;
             if (token) {
-                // Lưu thông tin vào localStorage
+                // Store the user info in localStorage, including username
                 localStorage.setItem("token", token);
                 localStorage.setItem("nickname", nickname);
                 localStorage.setItem("userId", userId);
+                localStorage.setItem("userName", userName); // Save username
 
-
-                // Điều hướng đến trang HomePage và truyền dữ liệu nickname
+                // Navigate to the HomePage
                 navigate("/homepage", { state: { loginSuccess: true, nickname } });
             } else {
-                setError("Sai tài khoản hoặc mật khẩu!");
+                setError("Incorrect username or password.");
             }
 
-
         } catch (err) {
-            console.error("Lỗi đăng nhập:", err);
-            setError(err.response?.data?.message || "Đăng nhập thất bại!");
+            console.error("Login Error:", err);
+            setError(err.response?.data?.message || "Login failed!");
         }
     };
 
@@ -67,7 +73,7 @@ const Login = () => {
                     Login with Google
                 </a>
 
-                <div className="text-gray-500 text-sm text-center mb-4">Or enter your username and password</div>
+                <div className="text-gray-500 text-sm text-center mb-4">Or enter your username/email and password</div>
 
                 <form onSubmit={handleLogin}>
                     <input

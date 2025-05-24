@@ -10,6 +10,7 @@ import AudioPlayerPage from "./AudioPlayerPage";
 export default function DictationPractice() {
     const [canProceed, setCanProceed] = useState(false);
     const [showExtras, setShowExtras] = useState(false);
+    const userId = parseInt(localStorage.getItem("userId"));
 
     const [currentPage, setCurrentPage] = useState("dictation");
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -408,7 +409,7 @@ export default function DictationPractice() {
 
                         <div className="border p-3 rounded bg-white shadow mt-4">
                             <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                            <CommentBox initialComments={comments} courseId={courseId} />
+                            <CommentBox initialComments={comments} courseId={courseId} userId={userId} />
                         </div>
                     </div>
                 </div>

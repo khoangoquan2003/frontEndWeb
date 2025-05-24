@@ -13,8 +13,22 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editContent, setEditContent] = useState("");
 
-    const userId = 1; // giả lập userId
-    const courseId = 3; // giả lập courseId
+    const userId = parseInt(localStorage.getItem("userId"));
+    console.log("UserId from localStorage:", userId);
+    const userNickname = localStorage.getItem("nickname") || localStorage.getItem("userName") || "You";
+    const courseId = propCourseId; // lấy courseId từ prop
+    useEffect(() => {
+        const storedUserId = parseInt(localStorage.getItem("userId"));
+        console.log("UserId from localStorage on mount:", storedUserId);
+    }, []);
+
+
+    useEffect(() => {
+        if (!userId || !userNickname) {
+            alert("Bạn cần đăng nhập để bình luận!");
+            // Optionally navigate to login page
+        }
+    }, []);
 
     useEffect(() => {
         fetchComments();
@@ -59,7 +73,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         });
 
         function sortByDate(arr) {
-            arr.sort((a, b) => new Date(a.createDate) - new Date(b.createDate));
+            arr.sort((a, b) => new Date(b.createDate) - new Date(a.createDate));
             arr.forEach((c) => {
                 if (c.replies.length) sortByDate(c.replies);
             });
@@ -79,9 +93,10 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 data.result.forEach((item) => {
                     if (!reactionMap[item.commentId]) reactionMap[item.commentId] = [];
                     reactionMap[item.commentId].push({
-                        userId: item.userId,
+                        userName: item.userName, // <-- thêm userName (đảm bảo API có trả về)
                         reaction: item.reaction,
                     });
+
                 });
             }
 
@@ -93,22 +108,43 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
     async function handleToggleLike(commentId) {
         try {
-            const currentUserReaction = getReactionSummary(commentId).currentUserReaction;
+            const { currentUserReaction } = getReactionSummary(commentId);
 
             if (currentUserReaction === "Like") {
-                // Bỏ like
-                await http.get("/api/delete-reaction", { params: { commentId, userId, reaction: "Like" } });
+                await http.get("/api/delete-reaction", {
+                    params: {
+                        commentId,
+                        userName: userNickname,
+                        reaction: "Like"
+                    }
+                });
+
+                // Xóa reaction ngay trong allReactions state
+                setAllReactions((prev) => {
+                    const updated = { ...prev };
+                    updated[commentId] = (updated[commentId] || []).filter(r => r.userName !== userNickname);
+                    return updated;
+                });
+
             } else {
-                if (currentUserReaction) {
-                    // Nếu có reaction khác (nhưng giờ chỉ có Like nên ko cần)
-                    await http.post("/api/change-reaction", { commentId, userId, reaction: "Like" });
-                } else {
-                    // Thêm like mới
-                    await http.post("/api/reaction", { userId, commentId, courseId, reaction: "Like" });
-                }
+                await http.post("/api/reaction", {
+                    userName: userNickname,
+                    commentId,
+                    courseId,
+                    reaction: "Like"
+                });
+
+                // Thêm reaction mới ngay trong allReactions state
+                setAllReactions((prev) => {
+                    const updated = { ...prev };
+                    if (!updated[commentId]) updated[commentId] = [];
+                    updated[commentId].push({ userName: userNickname, reaction: "Like" });
+                    return updated;
+                });
             }
 
-            fetchAllReactions();
+            // Có thể gọi fetchAllReactions() nếu muốn đồng bộ lại, hoặc bỏ đi nếu đã cập nhật trên state
+
         } catch (error) {
             console.error("Error toggling like:", error);
         }
@@ -125,55 +161,35 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 parentId: replyToId || null,
             });
 
-            const createdComment = {
-                id: res.data?.result?.id || Date.now(),
-                content: newComment,
-                user: { userName: "You" },
-                parentId: replyToId || null,
-                replies: [],
-                createDate: new Date().toISOString(),
-            };
+            console.log("Submitted comment result:", res.data); // <-- log để kiểm tra
 
-            setComments((prev) => {
-                if (replyToId) {
-                    return updateReplies(prev, replyToId, createdComment);
-                }
-                return [createdComment, ...prev];
-            });
+            // ✅ Gọi lại để lấy từ backend thay vì thêm thủ công
+            await fetchComments();
 
             setNewComment("");
             setReplyToId(null);
             setEmojiPickerVisible(false);
-            setCommentCount((prev) => prev + 1);
+            setEditingCommentId(null);
         } catch (error) {
             console.error("Error submitting comment:", error);
         }
     }
 
-    function updateReplies(comments, parentId, reply) {
-        return comments.map((comment) => {
-            if (comment.id === parentId) {
-                return { ...comment, replies: [...comment.replies, reply] };
-            }
-            if (comment.replies?.length) {
-                return { ...comment, replies: updateReplies(comment.replies, parentId, reply) };
-            }
-            return comment;
-        });
-    }
+
 
     function getReactionSummary(commentId) {
         const reactionsList = allReactions[commentId] || [];
         let currentUserReaction = null;
 
         reactionsList.forEach((r) => {
-            if (r.userId === userId) {
+            if (r.userName === userNickname) {
                 currentUserReaction = r.reaction;
             }
         });
 
         return { currentUserReaction };
     }
+
 
     function timeAgo(date) {
         const now = new Date();
@@ -203,12 +219,13 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         if (!editContent.trim()) return alert("Content cannot be empty");
 
         try {
-            // Giả sử backend có api PUT /api/comment/:id để update comment
-            await http.put(`/api/comment/${commentId}`, {
+            await http.put("/api/update-comment", {
+                commentId,
                 content: editContent,
-                userId,
-                courseId,
+                userId
             });
+
+
 
             // Update trong state
             setComments((prev) => updateCommentContent(prev, commentId, editContent));
@@ -230,36 +247,42 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             return comment;
         });
     }
+    function getLikeCount(commentId) {
+        return (allReactions[commentId] || []).filter(r => r.reaction === "Like").length;
+    }
 
     function renderComment(comment, level = 0) {
         const { currentUserReaction } = getReactionSummary(comment.id);
         const indentClass = `ml-${Math.min(level * 4, 12)}`;
 
-        return (
+        // Lấy username thống nhất
+        const username = comment.user?.userName || comment.userName || "Unknown";
 
+        return (
             <div key={comment.id} className={`mb-4 ${indentClass}`}>
                 <div className="flex space-x-3">
+                    {/* Avatar chỉ 1 cái, lấy ký tự đầu của username */}
                     <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center font-bold text-white">
-                        {comment.user?.userName?.[0]?.toUpperCase() || "U"}
+                        {username.charAt(0).toUpperCase()}
                     </div>
 
                     <div className="flex-1 text-sm text-gray-600">
                         <div className="font-semibold">
-                            {comment.user?.userName}
+                            {username}
                             <span className="text-gray-400 text-xs ml-2">({timeAgo(comment.createDate)})</span>
                         </div>
 
                         {editingCommentId === comment.id ? (
                             <div>
-    <textarea
-        rows={3}
-        className="w-full p-2 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-        value={editContent}
-        onChange={(e) => setEditContent(e.target.value)}
-        placeholder="Edit your comment..."
-        maxLength={500}
-        autoFocus
-    />
+                            <textarea
+                                rows={3}
+                                className="w-full p-2 border rounded resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                placeholder="Edit your comment..."
+                                maxLength={500}
+                                autoFocus
+                            />
                                 <div className="text-right text-xs text-gray-500 mt-1">
                                     {editContent.length} / 500
                                 </div>
@@ -286,17 +309,22 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                             <p className="mt-1">{comment.content}</p>
                         )}
 
-
                         {/* Like / Unlike */}
                         <div className="mt-2 flex items-center gap-4">
                             <button
                                 onClick={() => handleToggleLike(comment.id)}
-                                className={`px-3 py-1 rounded ${
-                                    currentUserReaction === "Like" ? "bg-blue-600 text-white" : "bg-gray-200"
+                                className={`flex items-center gap-1 px-3 py-1 rounded transition font-medium ${
+                                    currentUserReaction === "Like"
+                                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                                 }`}
                             >
-                                {currentUserReaction === "Like" ? "Unlike" : "Like"}
+                                {currentUserReaction === "Like" ? "💙 Liked" : "👍 Like"}
                             </button>
+
+
+
+
 
                             {/* Reply */}
                             <button
@@ -310,9 +338,8 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                             >
                                 Reply
                             </button>
-
                             {/* Edit */}
-                            {comment.user?.userName === "You" && editingCommentId !== comment.id && (
+                            {(comment.user?.userId || comment.userId) === userId && (
                                 <button
                                     className="text-green-600 underline"
                                     onClick={() => startEditing(comment)}
@@ -322,23 +349,29 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                             )}
 
                             {/* Delete */}
-                            <button
-                                onClick={() => handleDeleteComment(comment.id)}
-                                className="text-red-600 underline"
-                            >
-                                Delete
-                            </button>
+                            {(comment.user?.userId || comment.userId) === userId && (
+                                <button
+                                    onClick={() => handleDeleteComment(comment.id)}
+                                    className="text-red-600 underline"
+                                >
+                                    Delete
+                                </button>
+                            )}
+
+
+
+
                         </div>
 
                         {replyToId === comment.id && editingCommentId === null && (
                             <div className="mt-2">
-                                <textarea
-                                    rows={3}
-                                    className="w-full p-2 border rounded"
-                                    placeholder="Enter your reply..."
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                />
+                            <textarea
+                                rows={3}
+                                className="w-full p-2 border rounded"
+                                placeholder="Enter your reply..."
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                            />
                                 <div className="flex items-center gap-3 mt-2">
                                     <button onClick={toggleEmojiPicker} className="bg-gray-600 text-white px-3 py-1 rounded">
                                         😀
@@ -372,13 +405,29 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         );
     }
 
+
+
     async function handleDeleteComment(commentId) {
+        const userId = parseInt(localStorage.getItem("userId"));
+        if (!userId) {
+            alert("Bạn cần đăng nhập để xóa comment");
+            return;
+        }
+
+        // Thêm xác nhận
+        const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa bình luận này và tất cả phản hồi của nó không?");
+        if (!confirmDelete) return;
+
         try {
-            await http.delete(`/api/comment/${commentId}`, { params: { userId, courseId } });
+            await http.delete("/api/delete-comment", {
+                params: { commentId, userId }  // gửi dưới dạng query param
+            });
             setComments((prev) => deleteCommentById(prev, commentId));
             setCommentCount((prev) => prev - 1);
+            alert("Xóa bình luận thành công!");
         } catch (error) {
             console.error("Error deleting comment:", error);
+            alert("Xóa bình luận thất bại");
         }
     }
 
@@ -409,17 +458,17 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
             {isCommentsOpen && (
                 <div className="space-y-6">
-                    {comments.map(renderComment)}
 
+                    {/* ✅ Form bình luận đặt trước danh sách comment */}
                     {!replyToId && editingCommentId === null && (
                         <div className="mt-4">
-                            <textarea
-                                rows={3}
-                                className="w-full p-2 border rounded"
-                                placeholder="Write a comment..."
-                                value={newComment}
-                                onChange={(e) => setNewComment(e.target.value)}
-                            />
+                <textarea
+                    rows={3}
+                    className="w-full p-2 border rounded"
+                    placeholder="Write a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                />
                             <div className="flex items-center gap-3 mt-2">
                                 <button onClick={toggleEmojiPicker} className="px-3 py-1 bg-gray-600 text-white rounded">
                                     😀
@@ -435,8 +484,12 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                             )}
                         </div>
                     )}
+
+                    {/* ✅ Danh sách các bình luận */}
+                    {comments.map(renderComment)}
                 </div>
             )}
+
         </div>
     );
 }
