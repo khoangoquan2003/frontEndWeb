@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { http } from "../../api/Http";
+import { FaThumbsUp, FaRegThumbsUp } from 'react-icons/fa'; // Thêm thư viện react-icons
 
 function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [comments, setComments] = useState([]);
@@ -31,9 +32,10 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     }, []);
 
     useEffect(() => {
-        fetchComments();
-        fetchAllReactions();
-    }, []);
+        fetchComments();  // Lấy các bình luận
+        fetchAllReactions();  // Lấy tất cả reactions (like/unlike)
+    }, [courseId]); // Đảm bảo fetch lại khi courseId thay đổi
+
 
     async function fetchComments() {
         try {
@@ -83,6 +85,55 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         return roots;
     }
 
+    const handleToggleLike = async (commentId) => {
+        try {
+            const currentReactions = allReactions[commentId] || [];
+            const alreadyLiked = currentReactions.some(reaction => reaction.userId === userId);
+
+            console.log("Request Data for Like/Unlike:", { userId, commentId, courseId, reaction: "Like" });
+
+            if (alreadyLiked) {
+                // Nếu đã like, thực hiện unlike
+                await http.delete("/api/delete-reaction", { params: { commentId, userId, reaction: "Like" } });
+
+                // Cập nhật lại trạng thái reactions
+                setAllReactions(prev => {
+                    const updatedReactions = { ...prev };
+                    updatedReactions[commentId] = updatedReactions[commentId].filter(reaction => reaction.userId !== userId);
+                    return updatedReactions;
+                });
+
+                console.log(`Successfully removed like from comment ID: ${commentId}`);
+            } else {
+                // Nếu chưa like, thực hiện like
+                const response = await http.post("/api/reaction", {
+                    userId: userId,
+                    commentId: commentId,
+                    courseId: courseId,
+                    reaction: "Like"
+                });
+
+                console.log("Response after liking comment:", response.data);
+
+                // Cập nhật lại trạng thái reactions
+                setAllReactions(prev => {
+                    const updatedReactions = { ...prev };
+                    if (!updatedReactions[commentId]) updatedReactions[commentId] = [];
+                    updatedReactions[commentId].push({ userId, reaction: "Like" });
+                    return updatedReactions;
+                });
+
+                console.log(`Successfully added like to comment ID: ${commentId}`);
+            }
+
+            // Lưu lại trạng thái like vào localStorage
+            localStorage.setItem('reactions', JSON.stringify(allReactions));
+        } catch (error) {
+            console.error("Error toggling like:", error);
+            alert("Có lỗi xảy ra khi thao tác với like.");
+        }
+    };
+
     async function fetchAllReactions() {
         try {
             const res = await http.get("/api/show-reaction", { params: { courseId } });
@@ -93,60 +144,16 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 data.result.forEach((item) => {
                     if (!reactionMap[item.commentId]) reactionMap[item.commentId] = [];
                     reactionMap[item.commentId].push({
-                        userName: item.userName, // <-- thêm userName (đảm bảo API có trả về)
+                        userId: item.userId,
                         reaction: item.reaction,
                     });
-
                 });
             }
 
+            // Cập nhật lại trạng thái allReactions trong component
             setAllReactions(reactionMap);
         } catch (error) {
             console.error("Error fetching reactions:", error);
-        }
-    }
-
-    async function handleToggleLike(commentId) {
-        try {
-            const { currentUserReaction } = getReactionSummary(commentId);
-
-            if (currentUserReaction === "Like") {
-                await http.get("/api/delete-reaction", {
-                    params: {
-                        commentId,
-                        userName: userNickname,
-                        reaction: "Like"
-                    }
-                });
-
-                // Xóa reaction ngay trong allReactions state
-                setAllReactions((prev) => {
-                    const updated = { ...prev };
-                    updated[commentId] = (updated[commentId] || []).filter(r => r.userName !== userNickname);
-                    return updated;
-                });
-
-            } else {
-                await http.post("/api/reaction", {
-                    userName: userNickname,
-                    commentId,
-                    courseId,
-                    reaction: "Like"
-                });
-
-                // Thêm reaction mới ngay trong allReactions state
-                setAllReactions((prev) => {
-                    const updated = { ...prev };
-                    if (!updated[commentId]) updated[commentId] = [];
-                    updated[commentId].push({ userName: userNickname, reaction: "Like" });
-                    return updated;
-                });
-            }
-
-            // Có thể gọi fetchAllReactions() nếu muốn đồng bộ lại, hoặc bỏ đi nếu đã cập nhật trên state
-
-        } catch (error) {
-            console.error("Error toggling like:", error);
         }
     }
 
@@ -175,21 +182,11 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         }
     }
 
-
-
     function getReactionSummary(commentId) {
-        const reactionsList = allReactions[commentId] || [];
-        let currentUserReaction = null;
-
-        reactionsList.forEach((r) => {
-            if (r.userName === userNickname) {
-                currentUserReaction = r.reaction;
-            }
-        });
-
-        return { currentUserReaction };
+        const reactions = allReactions[commentId] || [];
+        const currentUserReaction = reactions.find(reaction => reaction.userId === userId);
+        return { currentUserReaction: currentUserReaction ? currentUserReaction.reaction : null, likeCount: reactions.length };
     }
-
 
     function timeAgo(date) {
         const now = new Date();
@@ -247,16 +244,16 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             return comment;
         });
     }
-    function getLikeCount(commentId) {
-        return (allReactions[commentId] || []).filter(r => r.reaction === "Like").length;
-    }
 
     function renderComment(comment, level = 0) {
-        const { currentUserReaction } = getReactionSummary(comment.id);
-        const indentClass = `ml-${Math.min(level * 4, 12)}`;
+        const { currentUserReaction } = getReactionSummary(comment.id);  // Lấy trạng thái like của người dùng
+        const indentClass = `comment-container ml-${Math.min(level * 4, 12)}`;
 
         // Lấy username thống nhất
         const username = comment.user?.userName || comment.userName || "Unknown";
+
+        // Đếm tổng số lượt like cho bình luận này
+        const totalLikes = (allReactions[comment.id] || []).filter(reaction => reaction.reaction === "Like").length;
 
         return (
             <div key={comment.id} className={`mb-4 ${indentClass}`}>
@@ -311,20 +308,15 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
                         {/* Like / Unlike */}
                         <div className="mt-2 flex items-center gap-4">
-                            <button
-                                onClick={() => handleToggleLike(comment.id)}
-                                className={`flex items-center gap-1 px-3 py-1 rounded transition font-medium ${
-                                    currentUserReaction === "Like"
-                                        ? "bg-blue-600 text-white hover:bg-blue-700"
-                                        : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                                }`}
-                            >
-                                {currentUserReaction === "Like" ? "💙 Liked" : "👍 Like"}
+                            <button onClick={() => handleToggleLike(comment.id)}>
+                                {currentUserReaction?.reaction === "Like" ? (
+                                    <FaThumbsUp />  // Icon thích
+                                ) : (
+                                    <FaRegThumbsUp />  // Icon chưa thích
+                                )}
+                                Like
                             </button>
-
-
-
-
+                            <span>{totalLikes} Likes</span> {/* Hiển thị tổng số lượt like */}
 
                             {/* Reply */}
                             <button
@@ -357,10 +349,6 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                                     Delete
                                 </button>
                             )}
-
-
-
-
                         </div>
 
                         {replyToId === comment.id && editingCommentId === null && (
@@ -404,8 +392,6 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             </div>
         );
     }
-
-
 
     async function handleDeleteComment(commentId) {
         const userId = parseInt(localStorage.getItem("userId"));
