@@ -47,16 +47,17 @@ const Header = ({ nickname: propNickname }) => {
         }
     };
 
-    // Handle Logout
     const handleLogout = () => {
-        localStorage.clear();
+        localStorage.clear(); // Xóa sạch tất cả dữ liệu trong localStorage
+
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
             autoClose: 2000,
             hideProgressBar: true,
         });
+
         setTimeout(() => {
-            navigate("/login");
+            navigate("/login"); // Chuyển trang sau 2 giây
         }, 2000);
     };
 
@@ -192,7 +193,10 @@ const Header = ({ nickname: propNickname }) => {
                                     {nickname ? (
                                         <Link
                                             to="/login"
-                                            onClick={handleLogout}
+                                            onClick={(e) => {
+                                                e.preventDefault(); // ngăn reload trang
+                                                handleLogout();
+                                            }}
                                             className="block px-4 py-2 hover:bg-red-100 text-red-600"
                                         >
                                             🚪 Logout
@@ -205,6 +209,7 @@ const Header = ({ nickname: propNickname }) => {
                                             🔐 Login
                                         </Link>
                                     )}
+
                                 </div>
                             )}
                         </div>

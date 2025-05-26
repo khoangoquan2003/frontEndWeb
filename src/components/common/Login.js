@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dlImage from '../../assets/img/1.jpg';
 
-
 const Login = () => {
     const navigate = useNavigate();
     const [userName, setUserName] = useState('');
@@ -51,6 +50,10 @@ const Login = () => {
         }
     };
 
+    const handleGoogleLogin = () => {
+        window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    };
+
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 relative">
             <div
@@ -67,8 +70,8 @@ const Login = () => {
                 {error && <p className="text-red-500 text-center">{error}</p>}
 
                 <a
-                    href="http://localhost:8080/oauth2/authorization/google"
-                    className="w-full flex items-center justify-center py-2 border rounded-md shadow-sm bg-white hover:bg-gray-100 text-gray-700 mb-4"
+                    onClick={handleGoogleLogin}  // Trigger Google login
+                    className="w-full flex items-center justify-center py-2 border rounded-md shadow-sm bg-white hover:bg-gray-100 text-gray-700 mb-4 cursor-pointer"
                 >
                     <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo" className="w-5 h-5 mr-2" />
                     Login with Google
