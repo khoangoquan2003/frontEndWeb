@@ -23,6 +23,7 @@ const Login = () => {
 
             const token = response.data?.result?.token;
             const nickname = response.data?.result?.nickName;
+
             const userId = response.data?.result?.userId;
             if (token) {
                 // Lưu thông tin vào localStorage
@@ -32,7 +33,7 @@ const Login = () => {
 
 
                 // Điều hướng đến trang HomePage và truyền dữ liệu nickname
-                navigate("/homepage", { state: { loginSuccess: true, nickname } });
+                navigate(`/homepage`, { state: { loginSuccess: true, nickname} });
             } else {
                 setError("Sai tài khoản hoặc mật khẩu!");
             }

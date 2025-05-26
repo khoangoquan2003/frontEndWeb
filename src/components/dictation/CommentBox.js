@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { http } from "../../api/Http"; // Đường dẫn API của bạn
-
+import { http } from "../../api/Http";
+import {useSearchParams} from "react-router-dom"; // Đường dẫn API của bạn
+import { useLocation } from 'react-router-dom';
 const reactions = {
     Like: "👍",
     Love: "❤️",
@@ -23,9 +24,11 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [hoverTimeout, setHoverTimeout] = useState(null);
     const [allReactions, setAllReactions] = useState({});
 
-    const userId = 1; // Giả lập ID người dùng
-    const courseId = 3; // Giả lập ID khóa học
-
+    // Giả lập ID người dùng
+    const [searchParams] = useSearchParams();
+    const courseId = parseInt(searchParams.get("courseId"));
+    const userId = localStorage.getItem("userId");
+    console.log(userId)
     useEffect(() => {
         fetchComments();
         fetchAllReactions();
