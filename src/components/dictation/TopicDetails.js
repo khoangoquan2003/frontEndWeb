@@ -79,6 +79,10 @@ const TopicDetails = () => {
         }
     };
 
+    const handleCourseClick = (courseName, courseId) => {
+        navigate(`/dictation?courseName=${courseName}&courseId=${courseId}`);
+    };
+
     return (
         <div className="p-8">
             <div className="flex items-center justify-between mb-6">
@@ -145,7 +149,7 @@ const TopicDetails = () => {
                                                 <div
                                                     key={course.id}
                                                     className="border p-4 rounded cursor-pointer hover:bg-gray-100"
-                                                    onClick={() => navigate(`/dictation?courseId=${course.id}`)}
+                                                    onClick={() => handleCourseClick(course.name, course.id)}
                                                 >
                                                     <h3 className="font-semibold text-lg">{course.name}</h3>
                                                     <div className="text-sm text-gray-600 mt-2">

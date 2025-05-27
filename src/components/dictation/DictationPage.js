@@ -19,8 +19,8 @@ export default function DictationPage() {
     const [transcriptData, setTranscriptData] = useState([]);
     const [searchParams] = useSearchParams();
     const courseId = parseInt(searchParams.get("courseId"));
+    const courseName = searchParams.get("courseName") || ''; // Directly get courseName from URL
 
-    const courseName = localStorage.getItem("courseName");
     // Fetch transcript từ API khi component mount
     useEffect(() => {
         const fetchTranscript = async () => {

@@ -38,7 +38,6 @@ export default function DictationPractice() {
     const [showMenu, setShowMenu] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isSkipped, setIsSkipped] = useState(false);  // Trạng thái "bỏ qua"
-
     const formatTime = (time) => {
         const minutes = Math.floor(time / 60);
         const seconds = Math.floor(time % 60);
@@ -299,6 +298,7 @@ export default function DictationPractice() {
 
     return (
         <div className="bg-white shadow-xl rounded-xl w-full max-w-[100%] mt-0 mb-[-2px] ml-[-4px] mr-[-4px] border-l-[2px] border-r-[2px] border-gray-300 pt-2 px-2">
+
             <div className="flex flex-col md:flex-row gap-6 items-start">
                 <div className="flex-1 space-y-3">
                     <audio
