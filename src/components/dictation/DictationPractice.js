@@ -13,7 +13,7 @@ export default function DictationPractice() {
     const [currentPage, setCurrentPage] = useState("dictation");
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [searchParams] = useSearchParams();
-    const courseId = parseInt(searchParams.get("courseId") || "1");
+    const courseId = parseInt(searchParams.get("courseId"));
     const audioRef = useRef(null);
     const [sentences, setSentences] = useState([]);
     const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
@@ -29,6 +29,7 @@ export default function DictationPractice() {
     const [loading, setLoading] = useState(false);
     const [loadingAnswer, setLoadingAnswer] = useState(false);
     const [correctAnswer, setCorrectAnswer] = useState("");
+
     const [audioUrl, setAudioUrl] = useState("");
     const [translation, setTranslation] = useState({ en: "", vi: "" });
     const [pronunciation, setPronunciation] = useState({
@@ -52,8 +53,11 @@ export default function DictationPractice() {
                 params: { courseId },
             });
 
-            const { sentences, sentenceAudios, comments, transcript } = res.data.result;
-
+            const { sentences, sentenceAudios, comments ,name} = res.data.result;
+            console.log(name)
+            if (name) {
+                localStorage.setItem("courseName", name);
+            }
             if (!sentences || !sentenceAudios || sentenceAudios.length === 0) {
                 console.error("Dữ liệu không đầy đủ: thiếu câu hoặc audio.");
                 return;
@@ -400,7 +404,7 @@ export default function DictationPractice() {
 
                     <div className="border p-3 rounded bg-white shadow">
                         <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                        <CommentBox comments={comments.length > 0 ? comments : ["Không có bình luận."]} />
+                        <CommentBox initialComments={comments} courseId={courseId} />
                     </div>
                 </div>
             </div>

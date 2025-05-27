@@ -25,6 +25,8 @@ const AudioPlayerPage = () => {
                     http.get('/api/get-main-audio', { params: { courseId } }),
                     http.get('/api/get-transcript', { params: { courseId } }),
                 ]);
+
+
                 setAudioUrl(audioRes.data);
                 setTranscriptText(transcriptRes.data);
             } catch (error) {
