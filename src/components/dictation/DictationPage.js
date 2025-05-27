@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
 import AudioPlayer from "./AudioPlayerPage";
+import {useSearchParams} from "react-router-dom";
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
@@ -15,19 +16,37 @@ export default function DictationPage() {
     const [audioUrl, setAudioUrl] = useState("");
     const [progress, setProgress] = useState(0);
 
-    const transcriptData = [
-        { text: "Hello everyone, welcome to today's dictation practice.", start: 0, end: 4 },
-        { text: "Please listen carefully and write down what you hear.", start: 4, end: 8 },
-        { text: "Let's start with some simple sentences.", start: 8, end: 12 },
-        { text: "Make sure to check your spelling and punctuation.", start: 12, end: 16 },
-        { text: "Good luck and have fun!", start: 16, end: 20 },
-    ];
+    const [transcriptData, setTranscriptData] = useState([]);
+    const [searchParams] = useSearchParams();
+    const courseId = parseInt(searchParams.get("courseId"));
+
+    const courseName = localStorage.getItem("courseName");
+    // Fetch transcript từ API khi component mount
+    useEffect(() => {
+        const fetchTranscript = async () => {
+            try {
+                const response = await fetch(`http://localhost:8080/api/get-transcript?courseId=${courseId}`);
+                const transcriptText = await response.text(); // Lấy dạng text thay vì json
+                // Tách đoạn text thành mảng các câu theo dấu xuống dòng
+                const data = transcriptText.split('\n').map((line, index) => ({
+                    text: line.trim(),
+
+                }));
+                setTranscriptData(data);
+            } catch (error) {
+                console.error("Error fetching transcript:", error);
+                setTranscriptData([]);
+            }
+        };
+
+        fetchTranscript();
+    }, []);
 
     // Handle Play, Pause, and Stop actions
     const handlePlayPauseStop = async () => {
         if (!isPlaying) {
             try {
-                const response = await fetch("http://localhost:8080/api/get-main-audio?courseId=1");
+                const response = await fetch(`http://localhost:8080/api/get-main-audio?courseId=${courseId}`);
                 const data = await response.text(); // Nếu trả về chuỗi URL
                 console.log("Fetched audio URL:", data);
 
@@ -76,7 +95,6 @@ export default function DictationPage() {
         if (audioRef.current) audioRef.current.volume = value;
     };
 
-    // Update current time and active transcript index
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
@@ -99,7 +117,7 @@ export default function DictationPage() {
             audio.removeEventListener("timeupdate", update);
             audio.removeEventListener("loadedmetadata", setDur);
         };
-    }, [audioUrl]);
+    }, [audioUrl, transcriptData]);
 
     // Format time to MM:SS
     const formatTime = (time) => {
@@ -125,7 +143,7 @@ export default function DictationPage() {
                 </button>
             </div>
 
-            <h1 className="text-2xl font-bold">🎧 Dictation Practice</h1>
+            <h1 className="text-2xl font-bold">🎧 {courseName}</h1>
 
             {currentPage === "dictation" && (
                 <div className="flex flex-col items-start space-y-4">
