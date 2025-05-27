@@ -96,53 +96,65 @@ const AudioPlayerPage = () => {
     }, []);
 
     return (
-        <div className="audio-player-page border border-gray-300 rounded-lg p-3 max-w-lg mx-auto mt-4 ml-0 hover:bg-gray-100 cursor-pointer transition-colors">
+        <div className="audio-player-page border border-gray-300 rounded-lg p-3 max-w-lg mx-auto mt-4 ml-0 transition-colors">
+
             {/* Audio Controls Dropdown */}
-            <div ref={menuRef} className="mb-4">
+            <div ref={menuRef} className="mb-2">
                 <div
-                    className="header flex justify-between items-center mb-2"
+                    className="bg-white hover:bg-gray-100 rounded-md p-3 transition-colors cursor-pointer"
                     onClick={handleToggleMenu}
                 >
-                    <h1 className="text-sm font-semibold">Audio Player with Speed Control</h1>
-                    <div className="menu-icon cursor-pointer text-xs">{showMenu ? '▲' : '▼'}</div>
+                    <div className="flex justify-between items-center">
+                        <h1 className="text-sm font-semibold">Audio Player with Speed Control</h1>
+                        <div className="menu-icon cursor-pointer text-xs">{showMenu ? '▲' : '▼'}</div>
+                    </div>
                 </div>
 
                 {showMenu && (
-                    <div className="audio-controls">
+                    <div className="audio-controls bg-white shadow-md rounded-md p-3 mt-2">
                         {audioUrl ? (
-                            <>
-                                <audio
-                                    ref={audioRef}
-                                    src={audioUrl}
-                                    controls
-                                    className="w-[250px] mb-2 ml-0"
-                                    playbackRate={playbackRate}
-                                />
-
-                            </>
+                            <audio
+                                ref={audioRef}
+                                src={audioUrl}
+                                controls
+                                className="w-full mb-3"
+                                playbackRate={playbackRate}
+                            />
                         ) : (
                             <p>Loading audio...</p>
                         )}
 
-                        <div className="transcript bg-gray-100 p-3 rounded-md ml-0 text-sm text-gray-800">
-                            <p>{transcriptText || 'Loading transcript...'}</p>
+                        <div className="transcript bg-gray-100 p-3 rounded-md text-sm text-gray-800">
+                            {transcriptText
+                                ? transcriptText
+                                    .split('.')
+                                    .filter(sentence => sentence.trim() !== '')
+                                    .map((sentence, index) => (
+                                        <p key={index}>{sentence.trim()}.</p>
+                                    ))
+                                : 'Loading transcript...'}
                         </div>
                     </div>
                 )}
             </div>
 
+            {/* Divider */}
+            <hr className="border-t border-gray-300 my-1" />
+
             {/* Quick Link to Next Course Dropdown */}
-            <div ref={nextCourseRef} className="quicklink-dropdown mt-4 border-t border-gray-300 pt-4">
+            <div ref={nextCourseRef}>
                 <div
-                    className="flex justify-between items-center cursor-pointer text-sm font-semibold"
+                    className="bg-white hover:bg-gray-100 rounded-md p-3 transition-colors cursor-pointer"
                     onClick={handleToggleNextCourse}
                 >
-                    <span>Quick Link to Next Course</span>
-                    {showNextCourse ? '▲' : '▼'}
+                    <div className="flex justify-between items-center">
+                        <span className="text-sm font-semibold">Quick Link to Next Course</span>
+                        <div className="text-xs">{showNextCourse ? '▲' : '▼'}</div>
+                    </div>
                 </div>
 
                 {showNextCourse && (
-                    <div className="menu bg-white shadow-md rounded-md p-2 mt-2 w-48">
+                    <div className="menu bg-white shadow-md rounded-md p-3 mt-2">
                         <button
                             onClick={handleGoToNextCourse}
                             className="block w-full text-left py-1 px-3 text-gray-700 hover:bg-gray-100 text-sm"
