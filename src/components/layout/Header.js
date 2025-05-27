@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify'; // Import toast
 import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaCog } from 'react-icons/fa';
 
 const Header = ({ nickname: propNickname }) => {
-    const nickname = propNickname || localStorage.getItem("nickname");
+    const [nickname, setNickname] = useState(propNickname || localStorage.getItem("nickname"));
     const navigate = useNavigate();
 
     // Modal and Notes States
@@ -22,13 +22,21 @@ const Header = ({ nickname: propNickname }) => {
 
     // Theme State
     const [theme, setTheme] = useState("light");
+    useEffect(() => {
+        const syncNickname = () => {
+            setNickname(localStorage.getItem("nickname"));
+        };
 
+        window.addEventListener("storage", syncNickname);
+        return () => window.removeEventListener("storage", syncNickname);
+    }, []);
     // Toggle theme
     const toggleTheme = (selectedTheme) => {
         setTheme(selectedTheme);
         document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
         setIsThemeDropdownOpen(false);
     };
+
 
     // Handle dropdown toggles
     const handleDropdownToggle = (dropdown) => {
@@ -48,18 +56,18 @@ const Header = ({ nickname: propNickname }) => {
     };
 
     const handleLogout = () => {
-        localStorage.clear(); // Xóa sạch tất cả dữ liệu trong localStorage
-
+        localStorage.clear();
+        setNickname(null); // ✅ cập nhật lại state để re-render
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
             autoClose: 2000,
-            hideProgressBar: true,
         });
-
         setTimeout(() => {
-            navigate("/login"); // Chuyển trang sau 2 giây
-        }, 2000);
+            navigate("/login");
+        }, 1000);
     };
+
+
 
     // Handle note saving
     const handleSaveNote = () => {
