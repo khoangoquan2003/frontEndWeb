@@ -99,7 +99,7 @@ const HomePage = () => {
             {/* CTA */}
             <section className="text-center py-12 bg-gray-100">
                 <h2 className="text-3xl font-bold mb-4">Sẵn sàng cải thiện kỹ năng tiếng Anh của bạn?</h2>
-                <Link to="/dictation">
+                <Link to="/topics">
                     <button className="bg-blue-500 text-white px-6 py-3 rounded-md font-bold hover:bg-blue-600">
                         Bắt đầu học ngay
                     </button>

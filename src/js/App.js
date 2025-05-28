@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-    BrowserRouter as Router,
-    Routes,
-    Route,
-    useLocation
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Login from "../components/common/Login";
 import Register from "../components/common/Register";
 import HomePage from "../page/HomePage";
@@ -34,7 +29,7 @@ import OAuthSuccess from '../components/common/OAuthSuccess';
 import ForgotPassword from "../components/common/ForgotPassword";
 
 
-const Layout = ({ children, nickname }) => {
+const Layout = ({ children, nickname, onLogout }) => {
     const location = useLocation();
 
     // Trang không cần Header/Footer
@@ -47,7 +42,7 @@ const Layout = ({ children, nickname }) => {
 
     return (
         <div className="flex flex-col min-h-screen">
-            {!hideHeaderFooter && <Header nickname={nickname} />}
+            {!hideHeaderFooter && <Header nickname={nickname} onLogout={onLogout} />}
             {!hideBanner && <BannerImage />}
             <main className="flex-grow">{children}</main>
             {!hideHeaderFooter && <Footer />}
@@ -64,6 +59,11 @@ function AppWrapper() {
             setNickname(storedNickname);
         }
     }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem("nickname"); // Xóa nickname khỏi localStorage
+        setNickname(''); // Cập nhật lại nickname trong state để Header được re-render
+    };
 
     return (
         <Router>
@@ -88,7 +88,6 @@ function AppWrapper() {
                     <Route path="dictations" element={<DictationList />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="/admin/users" element={<UserManagement />} />  {/* Thêm route cho UserManagement */}
-
                     {/* Thêm route admin khác nếu cần */}
                 </Route>
 
@@ -96,12 +95,11 @@ function AppWrapper() {
                 <Route
                     path="*"
                     element={
-                        <Layout nickname={nickname}>
+                        <Layout nickname={nickname} onLogout={handleLogout}>
                             <Routes>
                                 <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
                                 <Route path="/oauth-success" element={<OAuthSuccess />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />
-
                                 <Route path="/homepage" element={<HomePage />} />
                                 <Route path="/dictation" element={<DictationPage />} />
                                 <Route path="/dictation-page" element={<DictationPage />} />

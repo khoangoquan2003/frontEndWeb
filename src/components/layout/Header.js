@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify'; // Import toast
 import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaCog } from 'react-icons/fa';
 
 const Header = ({ nickname: propNickname }) => {
-    const nickname = propNickname || localStorage.getItem("nickname");
-    const [isModalOpen, setIsModalOpen] = useState(false); // Modal state for notes
-    const [noteContent, setNoteContent] = useState(''); // State for note content
-    const [notes, setNotes] = useState([]); // State for storing notes
-    const [isAddNoteForm, setIsAddNoteForm] = useState(false); // State to toggle between note list and add form
-    const [editingIndex, setEditingIndex] = useState(null); // State to track the note being edited
+    const [nickname, setNickname] = useState(propNickname || localStorage.getItem("nickname"));
+    const navigate = useNavigate();
+
+    // Modal and Notes States
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [noteContent, setNoteContent] = useState('');
+    const [notes, setNotes] = useState([]);
+    const [isAddNoteForm, setIsAddNoteForm] = useState(false);
+    const [editingIndex, setEditingIndex] = useState(null);
+
+    // Dropdown States
     const [isVideoDropdownOpen, setIsVideoDropdownOpen] = useState(false);
     const [isInProgressDropdownOpen, setIsInProgressDropdownOpen] = useState(false);
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
+
+    // Theme State
     const [theme, setTheme] = useState("light");
+    useEffect(() => {
+        const syncNickname = () => {
+            setNickname(localStorage.getItem("nickname"));
+        };
 
-    const navigate = useNavigate();
-
+        window.addEventListener("storage", syncNickname);
+        return () => window.removeEventListener("storage", syncNickname);
+    }, []);
     // Toggle theme
     const toggleTheme = (selectedTheme) => {
         setTheme(selectedTheme);
@@ -25,35 +37,39 @@ const Header = ({ nickname: propNickname }) => {
         setIsThemeDropdownOpen(false);
     };
 
-    // Handle dropdown toggle for different sections
+
+    // Handle dropdown toggles
     const handleDropdownToggle = (dropdown) => {
-        if (dropdown === 'video') setIsVideoDropdownOpen(!isVideoDropdownOpen);
-        if (dropdown === 'inProgress') setIsInProgressDropdownOpen(!isInProgressDropdownOpen);
-        if (dropdown === 'user') setIsUserDropdownOpen(!isUserDropdownOpen);
+        switch (dropdown) {
+            case 'video':
+                setIsVideoDropdownOpen(prev => !prev);
+                break;
+            case 'inProgress':
+                setIsInProgressDropdownOpen(prev => !prev);
+                break;
+            case 'user':
+                setIsUserDropdownOpen(prev => !prev);
+                break;
+            default:
+                break;
+        }
     };
 
-    // Handle logout
     const handleLogout = () => {
         localStorage.clear();
+        setNickname(null); // ✅ cập nhật lại state để re-render
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
             autoClose: 2000,
-            hideProgressBar: true,
         });
         setTimeout(() => {
             navigate("/login");
-        }, 2000);
+        }, 1000);
     };
 
-    // Open/close the note modal
-    const toggleModal = () => {
-        setIsModalOpen(!isModalOpen);
-        setNoteContent(''); // Reset note content when closing the modal
-        setIsAddNoteForm(false); // Reset to view notes when closing the modal
-        setEditingIndex(null); // Reset editing state
-    };
 
-    // Save the note and add it to the list
+
+    // Handle note saving
     const handleSaveNote = () => {
         if (noteContent.trim()) {
             if (editingIndex !== null) {
@@ -67,23 +83,22 @@ const Header = ({ nickname: propNickname }) => {
                 setNotes([...notes, noteContent]);
                 toast.success("Note saved!");
             }
-
-            setIsAddNoteForm(false); // Switch back to view notes after saving
-            setNoteContent(''); // Clear the note content
-            setEditingIndex(null); // Reset editing index
+            setIsAddNoteForm(false);
+            setNoteContent('');
+            setEditingIndex(null);
         } else {
             toast.error("Note content cannot be empty.");
         }
     };
 
-    // Handle edit of a note
+    // Edit note
     const handleEditNote = (index) => {
         setEditingIndex(index);
-        setNoteContent(notes[index]); // Set the content to be edited
-        setIsAddNoteForm(true); // Show the form to edit
+        setNoteContent(notes[index]);
+        setIsAddNoteForm(true);
     };
 
-    // Handle delete of a note
+    // Delete note
     const handleDeleteNote = (index) => {
         const updatedNotes = notes.filter((note, idx) => idx !== index);
         setNotes(updatedNotes);
@@ -93,7 +108,6 @@ const Header = ({ nickname: propNickname }) => {
     return (
         <header className="bg-white shadow-sm py-2 w-full sticky top-0 z-50 px-4">
             <div className="max-w-screen-xl mx-auto flex flex-col space-y-2 px-6">
-
                 {/* Logo and main menu */}
                 <div className="flex items-center justify-between flex-wrap text-sm text-gray-700">
                     <div className="flex flex-col">
@@ -159,7 +173,7 @@ const Header = ({ nickname: propNickname }) => {
                         <Link
                             to="#"
                             className="flex items-center space-x-1 hover:text-blue-600"
-                            onClick={toggleModal} // Open the modal to add/edit a note
+                            onClick={() => setIsModalOpen(true)}
                         >
                             <FaRegStickyNote />
                             <span>Note</span>
@@ -187,7 +201,10 @@ const Header = ({ nickname: propNickname }) => {
                                     {nickname ? (
                                         <Link
                                             to="/login"
-                                            onClick={handleLogout}
+                                            onClick={(e) => {
+                                                e.preventDefault(); // ngăn reload trang
+                                                handleLogout();
+                                            }}
                                             className="block px-4 py-2 hover:bg-red-100 text-red-600"
                                         >
                                             🚪 Logout
@@ -234,19 +251,19 @@ const Header = ({ nickname: propNickname }) => {
                 </div>
             </div>
 
+            {/* Notes Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-md shadow-lg w-96 relative">
                         {/* Close button (X) */}
                         <button
                             className="absolute top-2 right-3 text-gray-600 hover:text-red-600 text-lg font-bold"
-                            onClick={toggleModal}
+                            onClick={() => setIsModalOpen(false)}
                         >
                             ✖
                         </button>
 
                         {/* Header */}
-                        {/* Header with total note info */}
                         <div className="mb-2">
                             <div className="text-xl font-semibold">Notes</div>
                             <div className="text-sm text-gray-600 mt-1">
@@ -254,54 +271,8 @@ const Header = ({ nickname: propNickname }) => {
                             </div>
                         </div>
 
-                        {/* Add Note Button - small, aligned right */}
-                        {!isAddNoteForm && (
-                            <div className="flex justify-end mb-4">
-                                <button
-                                    className="text-sm text-blue-600 hover:underline flex items-center"
-                                    onClick={() => {
-                                        setIsAddNoteForm(true);
-                                        setNoteContent('');
-                                        setEditingIndex(null);
-                                    }}
-                                >
-                                    <span className="text-xl mr-1">+</span>Add Note
-                                </button>
-                            </div>
-                        )}
-
                         {/* Add/Edit Note Form */}
-                        {isAddNoteForm ? (
-                            <div>
-                    <textarea
-                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows="4"
-                        placeholder="Write your note..."
-                        value={noteContent}
-                        onChange={(e) => setNoteContent(e.target.value)}
-                    />
-                                <div className="flex justify-end space-x-4 mt-4">
-                                    <button
-                                        type="button"
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                                        onClick={handleSaveNote}
-                                    >
-                                        Save Note
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="bg-gray-300 text-black px-4 py-2 rounded-md hover:bg-gray-400"
-                                        onClick={() => {
-                                            setIsAddNoteForm(false);
-                                            setNoteContent('');
-                                            setEditingIndex(null);
-                                        }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
+                        {!isAddNoteForm ? (
                             <div>
                                 {notes.length === 0 ? (
                                     <p className="text-gray-600">No notes yet. Click "+ Add Note" to start.</p>
@@ -328,6 +299,36 @@ const Header = ({ nickname: propNickname }) => {
                                         ))}
                                     </ul>
                                 )}
+                            </div>
+                        ) : (
+                            <div>
+                                <textarea
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows="4"
+                                    placeholder="Write your note..."
+                                    value={noteContent}
+                                    onChange={(e) => setNoteContent(e.target.value)}
+                                />
+                                <div className="flex justify-end space-x-4 mt-4">
+                                    <button
+                                        type="button"
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                        onClick={handleSaveNote}
+                                    >
+                                        Save Note
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="bg-gray-300 text-black px-4 py-2 rounded-md hover:bg-gray-400"
+                                        onClick={() => {
+                                            setIsAddNoteForm(false);
+                                            setNoteContent('');
+                                            setEditingIndex(null);
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>
