@@ -148,6 +148,7 @@ export default function DictationPage() {
             {currentPage === "dictation" && (
                 <div className="flex flex-col items-start space-y-4">
                     <DictationPractice
+                        courseName={courseName}
                         audioRef={audioRef}
                         isPlaying={isPlaying}
                         setIsPlaying={setIsPlaying}
@@ -159,6 +160,7 @@ export default function DictationPage() {
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                     />
+
                 </div>
             )}
 
