@@ -14,6 +14,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editContent, setEditContent] = useState("");
     const [isProcessing, setIsProcessing] = useState(false); // Trạng thái xử lý
+    const [expandedComments, setExpandedComments] = useState({});
 
     const userId = parseInt(localStorage.getItem("userId"));
     console.log("UserId from localStorage:", userId);
@@ -36,6 +37,14 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         fetchComments();  // Lấy các bình luận
         fetchAllReactions();  // Lấy tất cả reactions (like/unlike)
     }, [courseId]); // Đảm bảo fetch lại khi courseId thay
+
+    const toggleChildComments = (commentId) => {
+        setExpandedComments((prev) => ({
+            ...prev,
+            [commentId]: !prev[commentId],
+        }));
+    };
+
 
     const handleToggleLike = async (commentId) => {
         if (isProcessing) return;
@@ -293,6 +302,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                             </div>
                         ) : (
                             <p className="mt-1">{comment.content}</p>
+
                         )}
 
                         {/* Like / Unlike */}
@@ -384,8 +394,17 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
                         {comment.replies?.length > 0 && (
                             <div className="mt-3">
-                                {comment.replies.map((reply) => renderComment(reply, level + 1))}
+                                <button
+                                    onClick={() => toggleChildComments(comment.id)}
+                                    className="text-sm text-blue-500 underline mb-2"
+                                >
+                                    {expandedComments[comment.id] ? "Hide replies" : `Show ${comment.replies.length} replies`}
+                                </button>
+
+                                {expandedComments[comment.id] &&
+                                    comment.replies.map((reply) => renderComment(reply, level + 1))}
                             </div>
+
                         )}
                     </div>
                 </div>
