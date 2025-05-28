@@ -56,8 +56,8 @@ const Header = ({ nickname: propNickname }) => {
     };
 
     const handleLogout = () => {
-        localStorage.clear();
-        setNickname(null); // ✅ cập nhật lại state để re-render
+        localStorage.removeItem("nickname"); // 👈 nên chỉ remove cụ thể thay vì clear toàn bộ
+        setNickname(null);
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
             autoClose: 2000,
@@ -66,6 +66,7 @@ const Header = ({ nickname: propNickname }) => {
             navigate("/login");
         }, 1000);
     };
+
 
 
 
@@ -274,6 +275,21 @@ const Header = ({ nickname: propNickname }) => {
                         {/* Add/Edit Note Form */}
                         {!isAddNoteForm ? (
                             <div>
+                                {/* Add Note Button */}
+                                <div className="flex justify-end mb-2">
+                                    <button
+                                        className="text-blue-600 hover:underline font-medium"
+                                        onClick={() => {
+                                            setNoteContent('');
+                                            setIsAddNoteForm(true);
+                                            setEditingIndex(null);
+                                        }}
+                                    >
+                                        ➕ Add Note
+                                    </button>
+                                </div>
+
+                                {/* Notes list or empty state */}
                                 {notes.length === 0 ? (
                                     <p className="text-gray-600">No notes yet. Click "+ Add Note" to start.</p>
                                 ) : (
@@ -301,6 +317,8 @@ const Header = ({ nickname: propNickname }) => {
                                 )}
                             </div>
                         ) : (
+
+
                             <div>
                                 <textarea
                                     className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
