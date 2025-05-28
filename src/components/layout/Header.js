@@ -171,14 +171,15 @@ const Header = ({ nickname: propNickname }) => {
                         </div>
 
                         {/* Notes - Open the modal to add/edit note */}
-                        <Link
-                            to="#"
+                        <button
+                            type="button"
                             className="flex items-center space-x-1 hover:text-blue-600"
                             onClick={() => setIsModalOpen(true)}
                         >
                             <FaRegStickyNote />
                             <span>Note</span>
-                        </Link>
+                        </button>
+
 
                         {/* User dropdown */}
                         <div className="relative flex items-center space-x-1">
