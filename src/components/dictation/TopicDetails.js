@@ -6,58 +6,85 @@ import axios from 'axios';
 
 const TopicDetails = () => {
     const [sections, setSections] = useState([]);
-    const [openSection, setOpenSection] = useState(null);
     const [coursesBySection, setCoursesBySection] = useState({});
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedLevel, setSelectedLevel] = useState("All levels");
+    const [openSection, setOpenSection] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState('All levels');
     const [filter, setFilter] = useState("No filter");
-
     const navigate = useNavigate();
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const topicId = queryParams.get('topicId');
     const topicType = queryParams.get('type');
 
-    const progressColors = [
-        'bg-blue-600', 'bg-green-600', 'bg-yellow-500',
-        'bg-purple-600', 'bg-red-500', 'bg-pink-500', 'bg-indigo-500'
-    ];
+    const progressColors = ['bg-blue-600', 'bg-green-600', 'bg-yellow-500', 'bg-purple-600', 'bg-red-500', 'bg-pink-500', 'bg-indigo-500'];
 
     useEffect(() => {
+        fetchSectionsAndCourses();
+    }, [topicId, selectedLevel]);
+
+    const fetchSectionsAndCourses = async () => {
         if (!topicId) return;
 
-        axios.get(`http://localhost:8080/api/show-all-section?topicId=${topicId}`)
-            .then((response) => {
-                if (response.data.code === 200) {
-                    const sectionsFromApi = response.data.result.map((section) => ({
+        try {
+            let fetchedSections = [];
+            let fetchedCoursesBySection = {};
+
+            if (selectedLevel === 'All levels') {
+                // Lấy tất cả section theo topicId
+                const sectionRes = await axios.get(`http://localhost:8080/api/show-all-section?topicId=${topicId}`);
+                if (sectionRes.data.code === 200) {
+                    fetchedSections = sectionRes.data.result.map(section => ({
                         id: section.id,
                         title: section.name,
                         count: section.countOfCourse
                     }));
-                    setSections(sectionsFromApi);
-                }
-            })
-            .catch((error) => {
-                console.error('Lỗi khi gọi API show-all-section:', error);
-            });
-    }, [topicId]);
 
-    const fetchCourses = async (sectionId) => {
-        try {
-            const response = await axios.get(`http://localhost:8080/api/show-all-course?sectionId=${sectionId}`);
-            if (response.data.code === 200) {
-                const courseList = response.data.result.map(course => ({
-                    id: course.id,
-                    name: course.name,
-                    level: course.level
-                }));
-                setCoursesBySection(prev => ({
-                    ...prev,
-                    [sectionId]: courseList
-                }));
+                    // Gọi từng section để lấy khóa học
+                    for (const section of fetchedSections) {
+                        const courseRes = await axios.get(`http://localhost:8080/api/show-all-course?sectionId=${section.id}`);
+                        if (courseRes.data.code === 200) {
+                            const courseList = courseRes.data.result.map(course => ({
+                                id: course.id,
+                                name: course.name,
+                                level: course.level
+                            }));
+                            fetchedCoursesBySection[section.id] = courseList;
+                        }
+                    }
+                }
+            } else {
+                // Gọi API lọc theo level
+                const levelRes = await axios.get(`http://localhost:8080/api/search-level?level=${selectedLevel}`);
+                if (levelRes.data.code === 200) {
+                    fetchedSections = levelRes.data.result.map(section => ({
+                        id: section.id,
+                        title: section.name,
+                        count: section.countOfCourse
+                    }));
+
+                    // Gọi từng section để lấy khóa học
+                    for (const section of fetchedSections) {
+                        const courseRes = await axios.get(`http://localhost:8080/api/show-all-course?sectionId=${section.id}`);
+                        if (courseRes.data.code === 200) {
+                            const filteredCourses = courseRes.data.result
+                                .filter(course => course.level === selectedLevel)
+                                .map(course => ({
+                                    id: course.id,
+                                    name: course.name,
+                                    level: course.level
+                                }));
+                            fetchedCoursesBySection[section.id] = filteredCourses;
+                        }
+                    }
+                }
             }
+
+            setSections(fetchedSections);
+            setCoursesBySection(fetchedCoursesBySection);
+            setOpenSection(null);
         } catch (error) {
-            console.error("Lỗi khi gọi API show-all-course:", error);
+            console.error('Lỗi khi lấy dữ liệu:', error);
         }
     };
 
@@ -69,18 +96,7 @@ const TopicDetails = () => {
     };
 
     const handleToggleSection = (sectionId) => {
-        if (openSection === sectionId) {
-            setOpenSection(null);
-        } else {
-            setOpenSection(sectionId);
-            if (!coursesBySection[sectionId]) {
-                fetchCourses(sectionId);
-            }
-        }
-    };
-
-    const handleCourseClick = (courseName, courseId) => {
-        navigate(`/dictation?courseName=${courseName}&courseId=${courseId}`);
+        setOpenSection(openSection === sectionId ? null : sectionId);
     };
 
     return (
@@ -88,13 +104,7 @@ const TopicDetails = () => {
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-4xl font-bold">{topicType}</h1>
                 <div className="flex gap-4 items-center w-full sm:w-auto">
-                    <input
-                        type="text"
-                        placeholder="Search"
-                        className="border px-4 py-2 rounded text-sm flex-grow min-w-[150px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+
                     <select
                         className="border px-4 py-2 rounded text-sm"
                         value={selectedLevel}
@@ -115,64 +125,69 @@ const TopicDetails = () => {
                         <option>No filter</option>
                         <option>Favorites</option>
                     </select>
-                    <button className="bg-gray-600 text-white px-6 py-2 rounded text-sm">OK</button>
+                    <button className="bg-gray-600 text-white px-6 py-2 rounded text-sm"
+                            onClick={fetchSectionsAndCourses}>
+                        OK
+                    </button>
                 </div>
             </div>
 
             <div className="space-y-6">
-                {sections.map((section) => (
-                    <div key={section.id}>
-                        <div
-                            className="border rounded px-6 py-4 cursor-pointer flex justify-between items-center hover:bg-gray-50 transition"
-                            onClick={() => handleToggleSection(section.id)}
-                        >
-                            <div className="font-semibold text-2xl">
-                                {section.title}
-                                <span className="text-sm font-normal ml-2 text-gray-500">
-                                    {section.count}
-                                    <FaStar className="inline ml-1 text-yellow-400" />
-                                </span>
+                {sections
+                    .filter(section => (selectedLevel === 'All levels' || coursesBySection[section.id]?.length))
+                    .map(section => (
+                        <div key={section.id}>
+                            <div
+                                className="border rounded px-6 py-4 cursor-pointer flex justify-between items-center hover:bg-gray-50 transition"
+                                onClick={() => handleToggleSection(section.id)}
+                            >
+                                <div className="font-semibold text-2xl">
+                                    {section.title}
+                                    <span className="text-sm font-normal ml-2 text-gray-500">
+                                        {section.count}
+                                        <FaStar className="inline ml-1 text-yellow-400" />
+                                    </span>
+                                </div>
+                                <ChevronRightIcon className="w-6 h-6 text-gray-600" />
                             </div>
-                            <ChevronRightIcon className="w-6 h-6 text-gray-600" />
-                        </div>
 
-                        {openSection === section.id && (
-                            <div className="flex gap-6 mt-4">
-                                {splitIntoColumns(coursesBySection[section.id] || []).map((column, colIndex) => (
-                                    <div key={colIndex} className="flex flex-col gap-4 flex-1">
-                                        {column.map((course, index) => {
-                                            const globalIndex = colIndex * Math.ceil((coursesBySection[section.id]?.length || 0) / 3) + index;
-                                            const colorClass = progressColors[globalIndex % progressColors.length];
-                                            const progressPercent = 20 + (globalIndex * 13) % 60;
+                            {openSection === section.id && (
+                                <div className="flex gap-6 mt-4">
+                                    {splitIntoColumns(coursesBySection[section.id] || []).map((column, colIndex) => (
+                                        <div key={colIndex} className="flex flex-col gap-4 flex-1">
+                                            {column.map((course, index) => {
+                                                const globalIndex = colIndex * Math.ceil((coursesBySection[section.id]?.length || 0) / 3) + index;
+                                                const colorClass = progressColors[globalIndex % progressColors.length];
+                                                const progressPercent = 20 + (globalIndex * 13) % 60;
 
-                                            return (
-                                                <div
-                                                    key={course.id}
-                                                    className="border p-4 rounded cursor-pointer hover:bg-gray-100"
-                                                    onClick={() => handleCourseClick(course.name, course.id)}
-                                                >
-                                                    <h3 className="font-semibold text-lg">{course.name}</h3>
-                                                    <div className="text-sm text-gray-600 mt-2">
-                                                        <div>Parts: 20</div>
-                                                        <div>Vocab Level: {course.level}</div>
-                                                    </div>
-                                                    <div className="mt-4">
-                                                        <div className="w-full bg-gray-200 rounded-full h-3">
-                                                            <div
-                                                                className={`${colorClass} h-3 rounded-full`}
-                                                                style={{ width: `${progressPercent}%` }}
-                                                            />
+                                                return (
+                                                    <div
+                                                        key={course.id}
+                                                        className="border p-4 rounded cursor-pointer hover:bg-gray-100"
+                                                        onClick={() => navigate(`/dictation?courseId=${course.id}`)}
+                                                    >
+                                                        <h3 className="font-semibold text-lg">{course.name}</h3>
+                                                        <div className="text-sm text-gray-600 mt-2">
+                                                            <div>Parts: 20</div>
+                                                            <div>Vocab Level: {course.level}</div>
+                                                        </div>
+                                                        <div className="mt-4">
+                                                            <div className="w-full bg-gray-200 rounded-full h-3">
+                                                                <div
+                                                                    className={`${colorClass} h-3 rounded-full`}
+                                                                    style={{ width: `${progressPercent}%` }}
+                                                                />
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ))}
+                                                );
+                                            })}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))}
             </div>
         </div>
     );
