@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify'; // Import toast
 import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaCog } from 'react-icons/fa';
+import { http } from "../../api/Http";
 
 const Header = ({ nickname: propNickname }) => {
     const [nickname, setNickname] = useState(propNickname || localStorage.getItem("nickname"));
@@ -36,6 +37,28 @@ const Header = ({ nickname: propNickname }) => {
         document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
         setIsThemeDropdownOpen(false);
     };
+    useEffect(() => {
+        const fetchNotes = async () => {
+            const userId = localStorage.getItem("userId");
+            if (!userId) return;
+
+            try {
+                const response = await http.get("/api/show-all-note", {
+                    params: { userId: parseInt(userId) },
+                });
+
+                const noteList = response?.data?.result;
+                if (Array.isArray(noteList)) {
+                    setNotes(noteList); // ✅ Lưu object: [{noteId, content}]
+                }
+            } catch (error) {
+                console.error("Failed to fetch notes:", error);
+                toast.error("Failed to load notes.");
+            }
+        };
+
+        fetchNotes();
+    }, []);
 
 
     // Handle dropdown toggles
@@ -68,42 +91,80 @@ const Header = ({ nickname: propNickname }) => {
     };
 
 
+    const handleSaveNote = async () => {
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+            toast.error("User ID not found. Please login again.");
+            return;
+        }
 
+        if (!noteContent.trim()) {
+            toast.error("Note content cannot be empty.");
+            return;
+        }
 
-    // Handle note saving
-    const handleSaveNote = () => {
-        if (noteContent.trim()) {
+        try {
             if (editingIndex !== null) {
-                // Update existing note
-                const updatedNotes = [...notes];
-                updatedNotes[editingIndex] = noteContent;
-                setNotes(updatedNotes);
-                toast.success("Note updated!");
+                // ✅ UPDATE NOTE
+                const noteToUpdate = notes[editingIndex];
+                const response = await http.put("/api/update-note", {
+                    noteId: noteToUpdate.id, // <-- sửa tại đây
+                    content: noteContent.trim(),
+                });
+
+                const updatedNote = response?.data?.result;
+                if (updatedNote) {
+                    const updatedNotes = [...notes];
+                    updatedNotes[editingIndex] = updatedNote;
+                    setNotes(updatedNotes);
+                    toast.success("Note updated!");
+                }
             } else {
-                // Add new note
-                setNotes([...notes, noteContent]);
-                toast.success("Note saved!");
+                // ✅ CREATE NEW NOTE
+                const response = await http.post("/api/create-note", {
+                    userId: parseInt(userId),
+                    content: noteContent.trim(),
+                });
+
+                const newNote = response?.data?.result;
+                if (newNote) {
+                    setNotes([...notes, newNote]);
+                    toast.success("Note saved!");
+                }
             }
+
             setIsAddNoteForm(false);
             setNoteContent('');
             setEditingIndex(null);
-        } else {
-            toast.error("Note content cannot be empty.");
+        } catch (error) {
+            console.error("Error saving/updating note:", error);
+            toast.error("Failed to save note.");
         }
     };
 
     // Edit note
     const handleEditNote = (index) => {
         setEditingIndex(index);
-        setNoteContent(notes[index]);
+        setNoteContent(notes[index].content);
         setIsAddNoteForm(true);
     };
 
     // Delete note
-    const handleDeleteNote = (index) => {
-        const updatedNotes = notes.filter((note, idx) => idx !== index);
-        setNotes(updatedNotes);
-        toast.info("Note deleted!");
+    const handleDeleteNote = async (index) => {
+        const noteToDelete = notes[index];
+
+        try {
+            await http.delete("/api/delete-note", {
+                params: { noteId: noteToDelete.id }, // ✅ Sửa ở đây
+            });
+
+            const updatedNotes = notes.filter((_, i) => i !== index);
+            setNotes(updatedNotes);
+            toast.success("Note deleted!");
+        } catch (error) {
+            console.error("Failed to delete note:", error);
+            toast.error("Failed to delete note.");
+        }
     };
 
     return (
@@ -296,8 +357,8 @@ const Header = ({ nickname: propNickname }) => {
                                 ) : (
                                     <ul>
                                         {notes.map((note, index) => (
-                                            <li key={index} className="border-b py-2 flex justify-between items-start text-sm">
-                                                <span className="w-3/4 break-words">{note}</span>
+                                            <li key={note.noteId} className="border-b py-2 flex justify-between items-start text-sm">
+                                                <span className="w-3/4 break-words">{note.content}</span>
                                                 <div className="space-x-2 flex-shrink-0">
                                                     <button
                                                         className="text-blue-600 hover:underline"
