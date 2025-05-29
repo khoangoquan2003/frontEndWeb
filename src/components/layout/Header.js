@@ -40,6 +40,7 @@ const Header = ({ nickname: propNickname }) => {
     useEffect(() => {
         const fetchNotes = async () => {
             const userId = localStorage.getItem("userId");
+            console.log("userId login:"+userId);
             if (!userId) return;
 
             try {
@@ -79,7 +80,10 @@ const Header = ({ nickname: propNickname }) => {
     };
 
     const handleLogout = () => {
+        const userId = localStorage.getItem("userId");
+        console.log("userId remove:"+userId);
         localStorage.removeItem("nickname"); // 👈 nên chỉ remove cụ thể thay vì clear toàn bộ
+        localStorage.removeItem("userId");
         setNickname(null);
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
