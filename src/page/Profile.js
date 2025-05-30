@@ -17,13 +17,13 @@ const Profile = () => {
     const [showImgModal, setShowImgModal] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
 
-    const userId = 2;
-
+    const userId = parseInt(localStorage.getItem("userId"));
+    console.log(userId)
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const token = localStorage.getItem("token");
-
+                console.log(token)
                 const response = await axios.get(
                     `http://localhost:8080/api/show-information?userId=${userId}`,
                     {
@@ -34,7 +34,7 @@ const Profile = () => {
                 );
 
                 const result = response.data.result;
-
+                console.log(result)
                 setUserData({
                     id: result.id,
                     username: result.nickName,
@@ -93,11 +93,11 @@ const Profile = () => {
             const token = localStorage.getItem("token");
 
             const formData = new FormData();
-            formData.append("avatar", selectedFile);
+            formData.append("userId", userId); // userId đúng cách
+            formData.append("newImage", selectedFile); // đúng key backend mong đợi
 
-            // Gửi file ảnh lên server (API bạn cần tạo)
             const response = await axios.put(
-                `http://localhost:8080/api/upload-avatar?userId=${userId}`,
+                "http://localhost:8080/api/edit-image", // KHÔNG dùng query param
                 formData,
                 {
                     headers: {
@@ -108,19 +108,19 @@ const Profile = () => {
             );
 
             const newImgUrl = response.data.result.img;
-
+            console.log(newImgUrl);
             setUserData((prev) => ({
                 ...prev,
                 img: newImgUrl,
             }));
 
-            // Đóng modal, reset file chọn
             setShowImgModal(false);
             setSelectedFile(null);
         } catch (error) {
             console.error("Failed to update avatar:", error);
         }
     };
+
 
     if (loading)
         return <div className="text-center mt-10">Loading...</div>;
