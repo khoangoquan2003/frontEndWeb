@@ -98,7 +98,7 @@ const Header = ({ nickname: propNickname }) => {
     const handleSaveNote = async () => {
         const userId = localStorage.getItem("userId");
         if (!userId) {
-            toast.error("User ID not found. Please login again.");
+            toast.error("Please login again.");
             return;
         }
 
