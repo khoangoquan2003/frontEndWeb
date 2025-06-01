@@ -43,6 +43,7 @@ export default function DictationPractice() {
         const seconds = Math.floor(time % 60);
         return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
     };
+    const [isFinished, setIsFinished] = useState(false);
 
     const loadCourseData = async () => {
         setLoading(true);
@@ -277,7 +278,7 @@ export default function DictationPractice() {
                 console.error("Lỗi khi tải câu tiếp theo:", error);
             }
         } else {
-            console.log("Đã hoàn thành khóa học này.");
+            setIsFinished(true); // ✅ Đánh dấu đã hoàn thành
         }
     };
 
@@ -297,183 +298,222 @@ export default function DictationPractice() {
     }, [currentTime, duration]);
 
     return (
-        <div className="bg-white shadow-xl rounded-xl w-full max-w-[100%] mt-0 mb-[-2px] ml-[-4px] mr-[-4px] border-l-[2px] border-r-[2px] border-gray-300 pt-2 px-2">
+        <div className="relative bg-white shadow-xl rounded-xl w-full max-w-[100%] mt-0 ml-[-4px] mr-[-4px] border-l-[2px] border-r-[2px] border-gray-300 pt-2 px-2 pb-4" style={{ minHeight: 450 }}>
 
-            <div className="flex flex-col md:flex-row gap-6 items-start">
-                <div className="flex-1 space-y-3">
-                    <audio
-                        ref={audioRef}
-                        src={audioUrl}
-                        preload="auto"
-                        onLoadedMetadata={(e) => setDuration(e.target.duration)}
-                        onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
-                        className="mb-2"
-                    />
-                    {/* Controls */}
-                    <div className="flex items-center border p-1 rounded-full justify-between mb-2">
-                        <div className="flex items-center gap-3 mr-2">
-                            <button
-                                onClick={isPlaying ? handlePause : handlePlay}
-                                className="w-8 h-8 flex justify-center items-center rounded-sm bg-white hover:bg-gray-100 transition-colors duration-150"
-                            >
-                                {isPlaying ? (
-                                    // Pause
-                                    <div className="flex gap-[2px]">
-                                        <div className="w-[3px] h-4 bg-black" />
-                                        <div className="w-[3px] h-4 bg-black" />
+        {/* Nếu đã hoàn thành, ẩn phần nội dung chính */}
+            {!isFinished && (
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                    <div className="flex-1 space-y-3">
+                        <audio
+                            ref={audioRef}
+                            src={audioUrl}
+                            preload="auto"
+                            onLoadedMetadata={(e) => setDuration(e.target.duration)}
+                            onTimeUpdate={(e) => setCurrentTime(e.target.currentTime)}
+                            className="mb-2"
+                        />
+
+                        {/* Controls */}
+                        <div className="flex items-center border p-1 rounded-full justify-between mb-2">
+                            <div className="flex items-center gap-3 mr-2">
+                                <button
+                                    onClick={isPlaying ? handlePause : handlePlay}
+                                    className="w-8 h-8 flex justify-center items-center rounded-sm bg-white hover:bg-gray-100 transition-colors duration-150"
+                                >
+                                    {isPlaying ? (
+                                        <div className="flex gap-[2px]">
+                                            <div className="w-[3px] h-4 bg-black" />
+                                            <div className="w-[3px] h-4 bg-black" />
+                                        </div>
+                                    ) : (
+                                        <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black ml-[2px]" />
+                                    )}
+                                </button>
+                            </div>
+                            <div className="flex flex-1 items-center gap-1">
+                                <span className="text-sm text-gray-600 w-10">{formatTime(currentTime)}</span>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    value={progress}
+                                    onChange={handleSeek}
+                                    className="flex-grow"
+                                />
+                                <span className="text-sm text-gray-600 w-10 text-right">{formatTime(duration)}</span>
+                            </div>
+
+                            {/* Volume */}
+                            <div className="mx-2 relative">
+                                <button
+                                    onClick={() => setShowVolumeSlider((prev) => !prev)}
+                                    className="w-8 h-8 flex justify-center items-center text-black bg-white hover:bg-gray-100 rounded-sm transition-colors duration-150 text-lg"
+                                >
+                                    {isMuted || volume === 0 ? "🔇" : "🔊"}
+                                </button>
+
+                                {showVolumeSlider && (
+                                    <div className="absolute top-12 right-0 bg-white shadow-md rounded-md px-3 py-2 w-32">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={isMuted ? 0 : volume}
+                                            onChange={handleVolumeChange}
+                                            className="w-full"
+                                        />
                                     </div>
-                                ) : (
-                                    // Play
-                                    <div className="w-0 h-0 border-t-[6px] border-b-[6px] border-l-[10px] border-t-transparent border-b-transparent border-l-black ml-[2px]" />
                                 )}
-                            </button>
-                        </div>
-                        <div className="flex flex-1 items-center gap-1">
-                            <span className="text-sm text-gray-600 w-10">{formatTime(currentTime)}</span>
-                            <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={progress}
-                                onChange={handleSeek}
-                                className="flex-grow"
-                            />
-                            <span className="text-sm text-gray-600 w-10 text-right">{formatTime(duration)}</span>
-                        </div>
-                        {/* Volume control */}
-                        <div className="mx-2 relative">
-                            <button
-                                onClick={() => setShowVolumeSlider((prev) => !prev)}
-                                className="w-8 h-8 flex justify-center items-center text-black bg-white hover:bg-gray-100 rounded-sm transition-colors duration-150 text-lg"
-                            >
-                                {isMuted || volume === 0 ? "🔇" : "🔊"}
-                            </button>
+                            </div>
 
-                            {showVolumeSlider && (
-                                <div className="absolute top-12 right-0 bg-white shadow-md rounded-md px-3 py-2 w-32">
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                        value={isMuted ? 0 : volume}
-                                        onChange={handleVolumeChange}
-                                        className="w-full"
-                                    />
-                                </div>
-                            )}
-                        </div>
-                        {/* Menu for playback speed and download */}
-                        <div className="mx-2 relative">
-                            <button
-                                onClick={() => setShowMenu(!showMenu)}
-                                className="px-3 py-2  text-xl hover:bg-gray-400"
-                            >
-                                ⋮
-                            </button>
-                            {showMenu && (
-                                <div className="absolute top-12 right-0 bg-white border border-black rounded-sm w-32 p-2 space-y-2 shadow-none">
-                                    {[1.0, 1.25, 1.5, 2.0].map((rate) => (
+                            {/* Menu */}
+                            <div className="mx-2 relative">
+                                <button
+                                    onClick={() => setShowMenu(!showMenu)}
+                                    className="px-3 py-2  text-xl hover:bg-gray-400"
+                                >
+                                    ⋮
+                                </button>
+                                {showMenu && (
+                                    <div className="absolute top-12 right-0 bg-white border border-black rounded-sm w-32 p-2 space-y-2 shadow-none">
+                                        {[1.0, 1.25, 1.5, 2.0].map((rate) => (
+                                            <button
+                                                key={rate}
+                                                onClick={() => handleChangeSpeed(rate)}
+                                                className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors duration-150 ${playbackRate === rate ? "bg-black text-white" : "bg-white text-black hover:bg-black hover:text-white"}`}
+                                            >
+                                                {rate}x
+                                            </button>
+                                        ))}
                                         <button
-                                            key={rate}
-                                            onClick={() => handleChangeSpeed(rate)}
-                                            className={`w-full text-left px-2 py-1 text-sm rounded-sm transition-colors duration-150 ${playbackRate === rate ? "bg-black text-white" : "bg-white text-black hover:bg-black hover:text-white"}`}
+                                            onClick={() => handleDownload(audioUrl)}
+                                            className="w-full text-left px-2 py-1 text-sm rounded-sm bg-white text-black hover:bg-black hover:text-white transition-colors duration-150"
                                         >
-                                            {rate}x
+                                            📥 Tải xuống
                                         </button>
-
-                                    ))}
-                                    <button
-                                        onClick={() => handleDownload(audioUrl)}
-                                        className="w-full text-left px-2 py-1 text-sm rounded-sm bg-white text-black hover:bg-black hover:text-white transition-colors duration-150"
-                                    >
-                                        📥 Tải xuống
-                                    </button>
-                                </div>
-                            )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Input and Check buttons */}
-                    <textarea
-                        rows={4}
-                        placeholder="Gõ lại đoạn bạn vừa nghe..."
-                        className="w-full p-2 border border-gray-300 rounded mb-2"
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                    />
-                    <div className="space-x-2 mt-2">
-                        {/* Nếu câu đã được kiểm tra hoặc bỏ qua thì hiển thị nút "Câu tiếp theo" */}
-                        {!canProceed ? (
-                            <button
-                                onClick={handleCheck}
-                                className={`px-4 py-2 ${loadingAnswer ? "bg-gray-500 cursor-not-allowed" : "bg-green-600"} text-white rounded hover:bg-green-700`}
-                                disabled={loadingAnswer}
-                            >
-                                {loadingAnswer ? "Đang kiểm tra..." : "Kiểm tra"}
-                            </button>
-                        ) : (
+                        {/* Input and check */}
+                        <textarea
+                            rows={4}
+                            placeholder="Gõ lại đoạn bạn vừa nghe..."
+                            className="w-full p-2 border border-gray-300 rounded mb-2"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                        />
+
+                        <div className="space-x-2 mt-2">
+                            {!canProceed ? (
+                                <button
+                                    onClick={handleCheck}
+                                    className={`px-4 py-2 ${loadingAnswer ? "bg-gray-500 cursor-not-allowed" : "bg-green-600"} text-white rounded hover:bg-green-700`}
+                                    disabled={loadingAnswer}
+                                >
+                                    {loadingAnswer ? "Đang kiểm tra..." : "Kiểm tra"}
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        loadNextSentence();
+                                        setCanProceed(false);
+                                        setShowExtras(false);
+                                    }}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Câu tiếp theo
+                                </button>
+                            )}
+
                             <button
                                 onClick={() => {
-                                    loadNextSentence();
-                                    setCanProceed(false); // Cập nhật canProceed để hiển thị lại nút "Kiểm tra"
-                                    setShowExtras(false); // Ẩn các phần phụ khi chuyển câu mới
+                                    setIsSkipped(true);
+                                    setShowExtras(true);
+                                    setShowAnswer(true);
+                                    setRevealedAnswer(`Đáp án đúng là: "${correctAnswer}"`);
+                                    setCanProceed(true);
                                 }}
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                             >
-                                Câu tiếp theo
+                                Bỏ qua
                             </button>
+                        </div>
 
-
+                        {showAnswer && (
+                            <div className="mt-4 p-3 border border-gray-300 bg-gray-50 rounded text-center font-medium">
+                                {revealedAnswer}
+                            </div>
                         )}
+                    </div>
 
-                        {/* Nút bỏ qua */}
+                    <div className="border rounded bg-white shadow p-4 flex flex-col gap-6 flex-1" style={{ minHeight: 450, width: "100%" }}>
+                        <div style={{ display: showExtras ? "block" : "none", flexGrow: 1, overflowY: "auto" }}>
+                            <TranslationBox translation={translation} />
+
+                            <div className="border p-3 rounded bg-white shadow mt-4">
+                                <PronunciationBox
+                                    sentence={pronunciation.sentence}
+                                    wordPronunciations={pronunciation.words}
+                                    onWordClick={playWordPronunciation}
+                                />
+                            </div>
+
+                            <div className="border p-3 rounded bg-white shadow mt-4">
+                                <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
+                                <CommentBox initialComments={comments} courseId={courseId} userId={userId} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isFinished && (
+                <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col justify-center items-center p-6 rounded-xl border border-green-400 z-10">
+                    <h2 className="text-3xl font-bold text-green-700 mb-4">
+                        🎉 You have completed this exercise, good job!
+                    </h2>
+                    <div className="flex flex-col sm:flex-row gap-4 mt-4">
                         <button
                             onClick={() => {
-                                setIsSkipped(true); // Đánh dấu là đã bỏ qua
-                                setShowExtras(true); // Hiển thị thêm thông tin khi bỏ qua
-                                setShowAnswer(true); // Hiển thị câu trả lời ngay lập tức khi bỏ qua
-
-                                // Cập nhật đáp án đúng khi bỏ qua
-                                setRevealedAnswer(`Đáp án đúng là: "${correctAnswer}"`);
-                                setCanProceed(true); // Đặt canProceed thành true khi đã bỏ qua
+                                console.log("Next exercise clicked");
                             }}
-                            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                            className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                         >
-                            Bỏ qua
+                            Next Exercise
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setCurrentSentenceIndex(0);
+                                setIsFinished(false);
+                                setInput("");
+                                setShowAnswer(false);
+                                setShowExtras(false);
+                                setCanProceed(false);
+                                loadCourseData();
+                            }}
+                            className="px-6 py-3 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition"
+                        >
+                            Repeat Exercise
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                window.location.href = "/topics";
+                            }}
+                            className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
+                        >
+                            View All Exercises
                         </button>
                     </div>
-
-                    {showAnswer && (
-                        <div className="mt-4 p-3 border border-gray-300 bg-gray-50 rounded text-center font-medium">
-                            {revealedAnswer}
-                        </div>
-                    )}
                 </div>
-
-                <div
-                    className="border rounded bg-white shadow p-4 flex flex-col gap-6 flex-1"
-                    style={{ minHeight: 450, width: "100%" }}
-                >
-                    <div style={{ display: showExtras ? "block" : "none", flexGrow: 1, overflowY: "auto" }}>
-                        <TranslationBox translation={translation} />
-
-                        <div className="border p-3 rounded bg-white shadow mt-4">
-                            <PronunciationBox
-                                sentence={pronunciation.sentence}
-                                wordPronunciations={pronunciation.words}
-                                onWordClick={playWordPronunciation}
-                            />
-                        </div>
-                        <div className="border p-3 rounded bg-white shadow mt-4">
-                            <h2 className="text-lg font-semibold mb-2">💬 Bình luận</h2>
-                            <CommentBox initialComments={comments} courseId={courseId} userId={userId} />
-                        </div>
-                    </div>
-                </div>
-            </div>
+            )}
 
             {loading && <div className="text-center mt-4 text-blue-600">Đang tải câu tiếp theo...</div>}
         </div>
     );
+
 }

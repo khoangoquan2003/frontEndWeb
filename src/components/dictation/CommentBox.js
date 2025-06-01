@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { http } from "../../api/Http";
 import { FaThumbsUp, FaRegThumbsUp } from 'react-icons/fa'; // Thêm thư viện react-icons
+import { toast } from 'react-toastify';
 
 function CommentBox({ initialComments = [], courseId: propCourseId }) {
     const [comments, setComments] = useState([]);
@@ -28,7 +29,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
 
     useEffect(() => {
         if (!userId || !userNickname) {
-            alert("Bạn cần đăng nhập để bình luận!");
+            toast.warn("⚠️ Bạn cần đăng nhập để bình luận!");
             // Optionally navigate to login page
         }
     }, []);
@@ -74,7 +75,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             }));
         } catch (error) {
             console.error("❌ Error toggling reaction:", error);
-            alert("Có lỗi xảy ra khi thao tác với reaction.");
+            toast.info("💬 Please enter a comment");
         } finally {
             setIsProcessing(false);
         }
@@ -148,7 +149,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     };
 
     async function handleSubmitComment() {
-        if (!newComment.trim()) return alert("Please enter a comment");
+        if (!newComment.trim()) return toast.warn("Please enter a comment");
 
         try {
             const res = await http.post("/api/comment", {
@@ -158,10 +159,15 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 parentId: replyToId || null,
             });
 
-            console.log("Submitted comment result:", res.data); // <-- log để kiểm tra
-
-            // ✅ Gọi lại để lấy từ backend thay vì thêm thủ công
             await fetchComments();
+
+            // ✅ Nếu đang reply, mở rộng replies cho comment cha
+            if (replyToId) {
+                setExpandedComments(prev => ({
+                    ...prev,
+                    [replyToId]: true,
+                }));
+            }
 
             setNewComment("");
             setReplyToId(null);
@@ -211,7 +217,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
     }
 
     async function handleSaveEdit(commentId) {
-        if (!editContent.trim()) return alert("Content cannot be empty");
+        if (!editContent.trim()) return toast.warn("Content cannot be empty");
 
         try {
             await http.put("/api/update-comment", {
@@ -412,28 +418,61 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
         );
     }
 
+
+    function showConfirmToast(message, onConfirm) {
+        const toastId = toast.info(
+            ({ closeToast }) => (
+                <div>
+                    <div className="font-medium mb-2">{message}</div>
+                    <div className="flex gap-2">
+                        <button
+                            className="px-3 py-1 bg-red-600 text-white rounded"
+                            onClick={() => {
+                                onConfirm();
+                                closeToast();
+                            }}
+                        >
+                            Xóa
+                        </button>
+                        <button
+                            className="px-3 py-1 bg-gray-300 text-black rounded"
+                            onClick={closeToast}
+                        >
+                            Hủy
+                        </button>
+                    </div>
+                </div>
+            ),
+            {
+                autoClose: false,
+                closeOnClick: false,
+                closeButton: false,
+            }
+        );
+    }
+
+
     async function handleDeleteComment(commentId) {
         const userId = parseInt(localStorage.getItem("userId"));
         if (!userId) {
-            alert("Bạn cần đăng nhập để xóa comment");
+            toast.warn("⚠️ Bạn cần đăng nhập để xóa comment");
             return;
         }
 
-        // Thêm xác nhận
-        const confirmDelete = window.confirm("Bạn có chắc chắn muốn xóa bình luận này và tất cả phản hồi của nó không?");
-        if (!confirmDelete) return;
+        showConfirmToast("Bạn có chắc chắn muốn xóa bình luận này và tất cả phản hồi của nó không?", async () => {
+            try {
+                await http.delete("/api/delete-comment", {
+                    params: { commentId, userId }
+                });
 
-        try {
-            await http.delete("/api/delete-comment", {
-                params: { commentId, userId }  // gửi dưới dạng query param
-            });
-            setComments((prev) => deleteCommentById(prev, commentId));
-            setCommentCount((prev) => prev - 1);
-            alert("Xóa bình luận thành công!");
-        } catch (error) {
-            console.error("Error deleting comment:", error);
-            alert("Xóa bình luận thất bại");
-        }
+                setComments((prev) => deleteCommentById(prev, commentId));
+                setCommentCount((prev) => prev - 1);
+                toast.success("🗑️ Xóa bình luận thành công!");
+            } catch (error) {
+                console.error("Error deleting comment:", error);
+                toast.error("❌ Xóa bình luận thất bại");
+            }
+        });
     }
 
     function deleteCommentById(comments, commentId) {
