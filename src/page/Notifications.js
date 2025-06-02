@@ -18,13 +18,21 @@ const Notifications = () => {
                 const response = await http.get(`/api/show-all-notification?userId=${userId}`);
 
                 if (response.data && response.data.result) {
-                    const sorted = response.data.result.sort(
+                    // Lọc thông báo: chỉ lấy những thông báo mà triggerUserId khác với userId hiện tại
+                    const filtered = response.data.result.filter(note => note.triggerUserId !== Number(userId));
+
+                    console.log("Filtered notifications:", filtered);
+
+                    const sorted = filtered.sort(
                         (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
                     );
+
                     setNotifications(sorted);
                 } else {
                     console.error("Dữ liệu trả về không hợp lệ:", response);
                 }
+
+
             } catch (error) {
                 console.error("Lỗi khi gọi API:", error);
             } finally {
@@ -52,14 +60,11 @@ const Notifications = () => {
                             <li
                                 key={note.id}
                                 className="p-4 pb-6 bg-white shadow rounded-lg border border-gray-200 hover:bg-gray-50 transition flex items-start space-x-4"
-                                // Thêm padding bottom nhiều hơn (pb-6 ~ 1.5rem)
                             >
-                                {/* Avatar chữ cái đầu */}
                                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-lg">
                                     {firstLetter}
                                 </div>
 
-                                {/* Nội dung thông báo */}
                                 <div className="flex-1">
                                     <p className="text-gray-800">{note.message}</p>
                                     <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
@@ -79,7 +84,6 @@ const Notifications = () => {
                                         >
                                             {note.courseName ? `Xem bài học: ${note.courseName}` : 'Xem bài học'}
                                         </a>
-
                                     </div>
                                 </div>
                             </li>
