@@ -7,6 +7,8 @@ import { http } from "../../api/Http";
 const Header = ({ nickname: propNickname }) => {
     const [nickname, setNickname] = useState(propNickname || localStorage.getItem("nickname"));
     const navigate = useNavigate();
+    const [commentCount, setCommentCount] = useState(0);
+    const [notificationCount, setNotificationCount] = useState(0);
 
     // Modal and Notes States
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +25,46 @@ const Header = ({ nickname: propNickname }) => {
 
     // Theme State
     const [theme, setTheme] = useState("light");
+    useEffect(() => {
+        const userId = localStorage.getItem('userId');
+        if (!userId) return;
+
+        const fetchNotificationCount = async () => {
+            try {
+                const response = await http.get(`/api/show-all-notification?userId=${userId}`);
+                if (response.data && Array.isArray(response.data.result)) {
+                    setNotificationCount(response.data.result.length);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+            }
+        };
+
+        const fetchCommentCount = async () => {
+            try {
+                const response = await http.get(`/api/show-comment-user?userId=${userId}`);
+                if (response.data && Array.isArray(response.data.result)) {
+                    setCommentCount(response.data.result.length);
+                }
+            } catch (error) {
+                console.error("Failed to fetch comment count:", error);
+            }
+        };
+
+        // Lần đầu lấy dữ liệu ngay
+        fetchNotificationCount();
+        fetchCommentCount();
+
+        // Poll mỗi 30 giây
+        const intervalId = setInterval(() => {
+            fetchNotificationCount();
+            fetchCommentCount();
+        }, 3000);
+
+        // Cleanup khi component unmount
+        return () => clearInterval(intervalId);
+    }, []);
+
     useEffect(() => {
         const syncNickname = () => {
             setNickname(localStorage.getItem("nickname"));
@@ -258,9 +300,12 @@ const Header = ({ nickname: propNickname }) => {
                             {isUserDropdownOpen && (
                                 <div className="absolute top-full right-0 bg-white shadow rounded-md mt-1 w-48 z-10">
                                     <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">👤 Profile Info</Link>
-                                    <Link to="/notifications" className="block px-4 py-2 hover:bg-gray-100">🔔 Notifications</Link>
-                                    <Link to="/comments" className="block px-4 py-2 hover:bg-gray-100">💬 Comments</Link>
-                                    <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">⭐ Favourites</Link>
+                                    <Link to="/notifications" className="block px-4 py-2 hover:bg-gray-100">
+                                        🔔 Notifications ({notificationCount})
+                                    </Link>
+                                    <Link to="/comments" className="block px-4 py-2 hover:bg-gray-100">
+                                        💬 Comments ({commentCount})
+                                    </Link>                                    <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">⭐ Favourites</Link>
                                     <div className="border-t my-1"></div>
                                     <Link to="/changePassword" className="block px-4 py-2 hover:bg-gray-100">🔑 Change Password</Link>
                                     <Link to="/changeMail" className="block px-4 py-2 hover:bg-gray-100">✉️ Change Email</Link>
