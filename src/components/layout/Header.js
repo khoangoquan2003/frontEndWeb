@@ -9,6 +9,7 @@ const Header = ({ nickname: propNickname }) => {
     const navigate = useNavigate();
     const [commentCount, setCommentCount] = useState(0);
     const [notificationCount, setNotificationCount] = useState(0);
+    const [favoriteCount, setFavoriteCount] = useState(0);
 
     // Modal and Notes States
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +29,19 @@ const Header = ({ nickname: propNickname }) => {
     useEffect(() => {
         const userId = localStorage.getItem('userId');
         if (!userId) return;
+
+        const fetchFavoriteCount = async () => {
+            try {
+                const response = await http.get(`/api/show-all-favorite-course`, {
+                    params: { userId: parseInt(userId) },
+                });
+                if (response.data && Array.isArray(response.data.result)) {
+                    setFavoriteCount(response.data.result.length);
+                }
+            } catch (error) {
+                console.error("Failed to fetch favorite courses:", error);
+            }
+        };
 
         const fetchNotificationCount = async () => {
             try {
@@ -52,11 +66,13 @@ const Header = ({ nickname: propNickname }) => {
         };
 
         // Lần đầu lấy dữ liệu ngay
+        fetchFavoriteCount();
         fetchNotificationCount();
         fetchCommentCount();
 
-        // Poll mỗi 30 giây
+        // Poll mỗi 3 giây
         const intervalId = setInterval(() => {
+            fetchFavoriteCount();
             fetchNotificationCount();
             fetchCommentCount();
         }, 3000);
@@ -305,7 +321,11 @@ const Header = ({ nickname: propNickname }) => {
                                     </Link>
                                     <Link to="/comments" className="block px-4 py-2 hover:bg-gray-100">
                                         💬 Comments ({commentCount})
-                                    </Link>                                    <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">⭐ Favourites</Link>
+                                    </Link>
+
+                                    <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">
+                                        ⭐ Favourites ({favoriteCount})
+                                    </Link>
                                     <div className="border-t my-1"></div>
                                     <Link to="/changePassword" className="block px-4 py-2 hover:bg-gray-100">🔑 Change Password</Link>
                                     <Link to="/changeMail" className="block px-4 py-2 hover:bg-gray-100">✉️ Change Email</Link>

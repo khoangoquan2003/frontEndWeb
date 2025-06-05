@@ -4,7 +4,6 @@ import { http } from "../../api/Http";
 import TranslationBox from './TranslationBox';
 import PronunciationBox from './PronunciationBox';
 import CommentBox from './CommentBox';
-import Popup from "../Popup/Popup";
 
 export default function DictationPractice() {
     const [canProceed, setCanProceed] = useState(false);
@@ -202,6 +201,7 @@ export default function DictationPractice() {
                 setCanProceed(false);
             }
 
+
             setShowAnswer(true);
         } catch (error) {
             console.error("❌ Lỗi khi kiểm tra câu:", error);
@@ -209,8 +209,21 @@ export default function DictationPractice() {
             setLoadingAnswer(false);
         }
     };
+    const createPractice = async () => {
+        try {
+            await http.post("/api/create-practice", null, {
+                params: {
+                    finish: "You have completed this exercise, good job!",
+                    userId,
+                    courseId,
+                },
+            });
+            console.log("✅ Gửi dữ liệu luyện tập thành công!");
+        } catch (error) {
+            console.error("❌ Gửi dữ liệu luyện tập thất bại:", error);
+        }
+    };
 
-// Sau khi tải dữ liệu câu mới, bạn sẽ cập nhật state của dịch cho câu tiếp theo
     const loadNextSentence = async () => {
         if (isSkipped) {
             setIsSkipped(false);  // Reset trạng thái bỏ qua khi tải câu mới
@@ -278,8 +291,10 @@ export default function DictationPractice() {
                 console.error("Lỗi khi tải câu tiếp theo:", error);
             }
         } else {
-            setIsFinished(true); // ✅ Đánh dấu đã hoàn thành
+            setIsFinished(true); // ✅ Đánh dấu hoàn thành
+            createPractice();     // 👉 Gửi dữ liệu lên server
         }
+
     };
 
     const playWordPronunciation = (wordAudioUrl) => {
