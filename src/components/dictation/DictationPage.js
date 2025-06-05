@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import DictationPractice from "./DictationPractice";
 import AudioPlayer from "./AudioPlayerPage";
-import {useSearchParams} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { http } from "../../api/Http";
 
 export default function DictationPage() {
     const [currentPage, setCurrentPage] = useState("dictation");
     const audioRef = useRef(null);
+
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -14,25 +16,48 @@ export default function DictationPage() {
     const [volume, setVolume] = useState(1);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [audioUrl, setAudioUrl] = useState("");
-    const [progress, setProgress] = useState(0);
-
     const [transcriptData, setTranscriptData] = useState([]);
+
     const [searchParams] = useSearchParams();
     const courseId = parseInt(searchParams.get("courseId"));
-    const courseName = searchParams.get("courseName") || ''; // Directly get courseName from URL
+    const courseName = searchParams.get("courseName") || "";
 
-    // Fetch transcript từ API khi component mount
+    // State quản lý yêu thích
+    const [isFavorite, setIsFavorite] = useState(false);
+
+    // Kiểm tra trạng thái yêu thích khi courseId hoặc userId thay đổi
     useEffect(() => {
+        const checkFavoriteStatus = async () => {
+            const userId = parseInt(localStorage.getItem("userId")); // ✅ convert string to number
+            if (!userId || !courseId) return;
+
+            try {
+                const response = await http.get("/api/check-favorite", {
+                    params: {courseId, userId },
+                });
+                setIsFavorite(response.data.isFavorite);
+            } catch (error) {
+                console.error("Lỗi khi kiểm tra trạng thái yêu thích:", error);
+            }
+        };
+
+        checkFavoriteStatus();
+    }, [courseId]);
+
+    // Lấy transcript khi component mount hoặc courseId thay đổi
+    useEffect(() => {
+        if (!courseId) return;
+
         const fetchTranscript = async () => {
             try {
-                const response = await fetch(`http://localhost:8080/api/get-transcript?courseId=${courseId}`);
-                const transcriptText = await response.text(); // Lấy dạng text thay vì json
-                // Tách đoạn text thành mảng các câu theo dấu xuống dòng
-                const data = transcriptText.split('\n').map((line, index) => ({
-                    text: line.trim(),
-
-                }));
-                setTranscriptData(data);
+                const response = await fetch(
+                    `http://localhost:8080/api/get-transcript?courseId=${courseId}`
+                );
+                const transcriptText = await response.text();
+                const lines = transcriptText
+                    .split("\n")
+                    .map((line) => ({ text: line.trim() }));
+                setTranscriptData(lines);
             } catch (error) {
                 console.error("Error fetching transcript:", error);
                 setTranscriptData([]);
@@ -40,111 +65,188 @@ export default function DictationPage() {
         };
 
         fetchTranscript();
-    }, []);
+    }, [courseId]);
 
-    // Handle Play, Pause, and Stop actions
-    const handlePlayPauseStop = async () => {
+    // Phát / tạm dừng audio, lấy URL audio nếu chưa có
+    const handlePlayPause = async () => {
         if (!isPlaying) {
             try {
-                const response = await fetch(`http://localhost:8080/api/get-main-audio?courseId=${courseId}`);
-                const data = await response.text(); // Nếu trả về chuỗi URL
-                console.log("Fetched audio URL:", data);
+                if (!audioUrl) {
+                    const response = await fetch(
+                        `http://localhost:8080/api/get-main-audio?courseId=${courseId}`
+                    );
+                    const audioLink = await response.text();
+                    setAudioUrl(audioLink);
 
-                setAudioUrl(data);
-
-                setTimeout(() => {
-                    if (audioRef.current) {
-                        audioRef.current.play();
+                    // Delay chút để audioRef cập nhật src mới rồi play
+                    setTimeout(() => {
+                        audioRef.current?.play();
                         setIsPlaying(true);
-                    }
-                }, 100);
+                    }, 100);
+                } else {
+                    audioRef.current?.play();
+                    setIsPlaying(true);
+                }
             } catch (error) {
                 console.error("Error fetching audio URL:", error);
             }
         } else {
-            audioRef.current.pause();
+            audioRef.current?.pause();
             setIsPlaying(false);
         }
     };
 
-    // Handle seeking within the audio
+    // Cập nhật thời gian phát khi kéo thanh seek
     const handleSeek = (e) => {
         const value = Number(e.target.value);
-        audioRef.current.currentTime = value;
-        setCurrentTime(value);
+        if (audioRef.current) {
+            audioRef.current.currentTime = value;
+            setCurrentTime(value);
+        }
     };
 
-    // Handle downloading the audio
+    // Tải audio về máy
     const handleDownload = () => {
+        if (!audioUrl) return;
         const link = document.createElement("a");
         link.href = audioUrl;
         link.download = "dictation_audio.mp3";
         link.click();
     };
 
-    // Handle changing playback rate
+    // Thay đổi tốc độ phát
     const handlePlaybackRateChange = (rate) => {
         setPlaybackRate(rate);
         if (audioRef.current) audioRef.current.playbackRate = rate;
     };
 
-    // Handle volume change
+    // Thay đổi âm lượng
     const handleVolumeChange = (e) => {
         const value = Number(e.target.value);
         setVolume(value);
         if (audioRef.current) audioRef.current.volume = value;
     };
 
+    // Cập nhật currentTime, duration, activeIndex khi audio phát
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        const update = () => {
+        const onTimeUpdate = () => {
             setCurrentTime(audio.currentTime);
 
+            // Nếu transcript có trường start/end, có thể dùng logic này để highlight chính xác
+            // hiện tại bạn chưa có nên activeIndex tạm để -1
             const currentIndex = transcriptData.findIndex(
-                (line) => audio.currentTime >= line.start && audio.currentTime < line.end
+                (line) => audio.currentTime >= (line.start || 0) && audio.currentTime < (line.end || Infinity)
             );
             setActiveIndex(currentIndex);
         };
 
-        const setDur = () => setDuration(audio.duration);
+        const onLoadedMetadata = () => {
+            setDuration(audio.duration);
+        };
 
-        audio.addEventListener("timeupdate", update);
-        audio.addEventListener("loadedmetadata", setDur);
+        audio.addEventListener("timeupdate", onTimeUpdate);
+        audio.addEventListener("loadedmetadata", onLoadedMetadata);
 
         return () => {
-            audio.removeEventListener("timeupdate", update);
-            audio.removeEventListener("loadedmetadata", setDur);
+            audio.removeEventListener("timeupdate", onTimeUpdate);
+            audio.removeEventListener("loadedmetadata", onLoadedMetadata);
         };
     }, [audioUrl, transcriptData]);
 
-    // Format time to MM:SS
+    // Định dạng thời gian kiểu MM:SS
     const formatTime = (time) => {
         const min = Math.floor(time / 60);
         const sec = Math.floor(time % 60);
         return `${min}:${sec < 10 ? "0" + sec : sec}`;
     };
 
+    // Xử lý toggle favorite (thêm hoặc xóa)
+    const handleToggleFavorite = async () => {
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+            alert("Vui lòng đăng nhập để sử dụng chức năng này.");
+            return;
+        }
+
+        try {
+            if (isFavorite) {
+                // Gọi API xóa favorite
+                await http.delete("/api/delete-favorite-course", {
+                    params: { userId, courseId },
+                });
+                setIsFavorite(false);
+                alert("Đã bỏ yêu thích khóa học.");
+            } else {
+                // Gọi API thêm favorite
+                await http.post("/api/create-favorite-course", { userId, courseId });
+                setIsFavorite(true);
+                alert("Đã thêm vào mục yêu thích!");
+            }
+        } catch (error) {
+            console.error("Lỗi khi cập nhật yêu thích:", error);
+            alert("Đã xảy ra lỗi khi cập nhật mục yêu thích.");
+        }
+    };
+
     return (
         <div className="max-w-5xl mx-auto mt-10 p-4 space-y-4">
+            {/* Toggle giữa Practice và Transcript */}
             <div className="flex justify-center mb-6 space-x-4">
                 <button
                     onClick={() => setCurrentPage("dictation")}
-                    className={`px-4 py-2 rounded ${currentPage === "dictation" ? "bg-black text-white" : "bg-white text-black border border-black"} hover:bg-gray-300`}
+                    className={`px-4 py-2 rounded ${
+                        currentPage === "dictation"
+                            ? "bg-black text-white"
+                            : "bg-white text-black border border-black"
+                    } hover:bg-gray-300`}
                 >
                     Practice
                 </button>
                 <button
                     onClick={() => setCurrentPage("transcript")}
-                    className={`px-4 py-2 rounded ${currentPage === "transcript" ? "bg-black text-white" : "bg-white text-black border border-black"} hover:bg-gray-300`}
+                    className={`px-4 py-2 rounded ${
+                        currentPage === "transcript"
+                            ? "bg-black text-white"
+                            : "bg-white text-black border border-black"
+                    } hover:bg-gray-300`}
                 >
                     Full transcript
                 </button>
             </div>
 
-            <h1 className="text-2xl font-bold">🎧 {courseName}</h1>
+            {/* Tiêu đề và menu yêu thích */}
+            <div className="flex items-center relative">
+                <h1 className="text-2xl font-bold flex items-center">🎧 {courseName}</h1>
+                <div className="relative ml-2">
+                    <button
+                        onClick={() => setIsSettingsOpen((prev) => !prev)}
+                        className="text-lg p-2 rounded-full bg-gray-100 hover:bg-gray-200 border border-gray-300 shadow-sm transition"
+                        title="More options"
+                    >
+                        ⋯
+                    </button>
 
+
+                    {isSettingsOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50 flex flex-col text-sm">
+                            <button
+                                onClick={() => {
+                                    handleToggleFavorite();
+                                    setIsSettingsOpen(false);
+                                }}
+                                className="px-4 py-2 hover:bg-gray-100 text-left"
+                            >
+                                {isFavorite ? "Remove from Favourite" : "Add to Favourite"}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Nội dung Practice hoặc Transcript */}
             {currentPage === "dictation" && (
                 <div className="flex flex-col items-start space-y-4">
                     <DictationPractice
@@ -152,7 +254,7 @@ export default function DictationPage() {
                         audioRef={audioRef}
                         isPlaying={isPlaying}
                         setIsPlaying={setIsPlaying}
-                        handlePlayPauseStop={handlePlayPauseStop}
+                        handlePlayPauseStop={handlePlayPause}
                         volume={volume}
                         setVolume={setVolume}
                         playbackRate={playbackRate}
@@ -160,20 +262,21 @@ export default function DictationPage() {
                         currentPage={currentPage}
                         setCurrentPage={setCurrentPage}
                     />
-
                 </div>
             )}
 
             {currentPage === "transcript" && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded bg-gray-100">
                     <div className="w-full flex flex-col space-y-3">
+                        {/* Audio element */}
                         <audio ref={audioRef} src={audioUrl} />
+
                         <div className="flex items-center justify-between mb-2 space-x-3">
                             {/* Play/Pause Button */}
                             <button
-                                onClick={handlePlayPauseStop}
+                                onClick={handlePlayPause}
                                 title={isPlaying ? "Pause" : "Play"}
-                                className="text-xl p-3  hover:bg-blue text-black"
+                                className="text-xl p-3 hover:bg-blue text-black"
                             >
                                 {isPlaying ? "❚❚" : "▶"}
                             </button>
@@ -192,28 +295,39 @@ export default function DictationPage() {
 
                             {/* Time */}
                             <div className="text-sm text-gray-700">
-                                <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+                <span>
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
                             </div>
 
                             {/* Volume Control */}
-                            <button onClick={() => audioRef.current.muted = !audioRef.current.muted} className="text-sm">
+                            <button
+                                onClick={() => {
+                                    if (audioRef.current) {
+                                        audioRef.current.muted = !audioRef.current.muted;
+                                        // Cập nhật volume để trigger re-render
+                                        setVolume(audioRef.current.muted ? 0 : audioRef.current.volume);
+                                    }
+                                }}
+                                className="text-sm"
+                                title="Mute/Unmute"
+                            >
                                 {audioRef.current?.muted ? "🔇" : "🔊"}
                             </button>
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={volume}
-                                    onChange={handleVolumeChange}
-                                    className="w-20 accent-blue-600"
-                                />
-                            </div>
+
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={volume}
+                                onChange={handleVolumeChange}
+                                className="w-20 accent-blue-600"
+                            />
 
                             {/* Settings Button */}
                             <button
-                                onClick={() => setIsSettingsOpen(prev => !prev)}
+                                onClick={() => setIsSettingsOpen((prev) => !prev)}
                                 className="text-2xl p-3 transform rotate-90"
                                 title="Settings"
                             >
@@ -236,9 +350,15 @@ export default function DictationPage() {
                                         Download
                                     </button>
                                     <div className="flex space-x-2">
-                                        <button onClick={() => handlePlaybackRateChange(1)} className="text-sm">1x</button>
-                                        <button onClick={() => handlePlaybackRateChange(1.5)} className="text-sm">1.5x</button>
-                                        <button onClick={() => handlePlaybackRateChange(2)} className="text-sm">2x</button>
+                                        {[1, 1.5, 2].map((rate) => (
+                                            <button
+                                                key={rate}
+                                                onClick={() => handlePlaybackRateChange(rate)}
+                                                className={`text-sm ${playbackRate === rate ? "font-bold" : ""}`}
+                                            >
+                                                {rate}x
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -253,7 +373,9 @@ export default function DictationPage() {
                                 {transcriptData.map((line, idx) => (
                                     <li
                                         key={idx}
-                                        className={`transition-all duration-200 ${idx === activeIndex ? "bg-yellow-100 font-semibold rounded px-2 py-1" : ""}`}
+                                        className={`transition-all duration-200 ${
+                                            idx === activeIndex ? "bg-yellow-100 font-semibold rounded px-2 py-1" : ""
+                                        }`}
                                     >
                                         {line.text}
                                     </li>

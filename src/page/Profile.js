@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { http } from "../api/Http";
 
 const formatMinutes = (min) => {
     const hours = Math.floor(min / 60);
@@ -9,32 +9,31 @@ const formatMinutes = (min) => {
 
 const Profile = () => {
     const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [practiceData, setPracticeData] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(true);
+    const [loadingPractice, setLoadingPractice] = useState(true);
+    const [errorUser, setErrorUser] = useState(null);
+    const [errorPractice, setErrorPractice] = useState(null);
+
     const [isEditing, setIsEditing] = useState(false);
     const [newNickName, setNewNickName] = useState("");
 
-    // Quản lý modal chọn ảnh
     const [showImgModal, setShowImgModal] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
 
-    const userId = 2;
+    const userId = localStorage.getItem("userId");
 
+    // Fetch user info
     useEffect(() => {
-        const fetchData = async () => {
+        const fetchUser = async () => {
             try {
                 const token = localStorage.getItem("token");
+                const res = await http.get(`/api/show-information`, {
+                    params: { userId },
+                    headers: { Authorization: `Bearer ${token}` },
+                });
 
-                const response = await axios.get(
-                    `http://localhost:8080/api/show-information?userId=${userId}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                const result = response.data.result;
-
+                const result = res.data.result;
                 setUserData({
                     id: result.id,
                     username: result.nickName,
@@ -45,28 +44,45 @@ const Profile = () => {
                     last7Days: 320,
                     last30Days: 1260,
                 });
-
-                setLoading(false);
+                setLoadingUser(false);
             } catch (error) {
-                console.error("Error fetching user data:", error);
-                setLoading(false);
+                setErrorUser("Failed to load user data");
+                setLoadingUser(false);
             }
         };
+        fetchUser();
+    }, [userId]);
 
-        fetchData();
-    }, []);
+    // Fetch practice info
+    useEffect(() => {
+        const fetchPractice = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                const res = await http.get(`/api/show-practice`, {
+                    params: { userId },
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setPracticeData(res.data.result);
+                setLoadingPractice(false);
+            } catch (error) {
+                setErrorPractice("Failed to load practice data");
+                setLoadingPractice(false);
+            }
+        };
+        fetchPractice();
+    }, [userId]);
 
     const handleSaveNickname = async () => {
         try {
             const token = localStorage.getItem("token");
 
-            await axios.put(
-                `http://localhost:8080/api/edit-nick-name-user?userId=${userId}&newNickName=${newNickName}`,
+            await http.put(
+                `/api/edit-nick-name-user`,
                 {},
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    params: { userId, newNickName },
+                    headers: { Authorization: `Bearer ${token}` },
                 }
             );
 
@@ -95,11 +111,11 @@ const Profile = () => {
             const formData = new FormData();
             formData.append("avatar", selectedFile);
 
-            // Gửi file ảnh lên server (API bạn cần tạo)
-            const response = await axios.put(
-                `http://localhost:8080/api/upload-avatar?userId=${userId}`,
+            const response = await http.put(
+                `/api/upload-avatar`,
                 formData,
                 {
+                    params: { userId },
                     headers: {
                         "Content-Type": "multipart/form-data",
                         Authorization: `Bearer ${token}`,
@@ -114,7 +130,6 @@ const Profile = () => {
                 img: newImgUrl,
             }));
 
-            // Đóng modal, reset file chọn
             setShowImgModal(false);
             setSelectedFile(null);
         } catch (error) {
@@ -122,17 +137,25 @@ const Profile = () => {
         }
     };
 
-    if (loading)
+    if (loadingUser || loadingPractice)
         return <div className="text-center mt-10">Loading...</div>;
-    if (!userData)
+
+    if (errorUser)
         return (
             <div className="text-center mt-10 text-red-500">
-                Failed to load user data.
+                {errorUser}
+            </div>
+        );
+
+    if (errorPractice)
+        return (
+            <div className="text-center mt-10 text-red-500">
+                {errorPractice}
             </div>
         );
 
     return (
-        <div className="max-w-2xl mx-auto bg-white shadow p-6 rounded mt-10">
+        <div className="max-w-2xl mx-auto bg-white shadow p-6 rounded mt-10 mb-10">
             {/* Avatar + Name */}
             <div className="flex items-center space-x-4 mb-6">
                 <img
@@ -176,7 +199,6 @@ const Profile = () => {
                                     Edit
                                 </button>
 
-                                {/* Nút máy ảnh mở modal chọn file */}
                                 <button
                                     onClick={() => setShowImgModal(true)}
                                     className="relative top-[-4px] text-blue-600 text-2xl cursor-pointer hover:text-blue-800"
@@ -195,7 +217,7 @@ const Profile = () => {
             </div>
 
             {/* Info grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
                 <div className="bg-gray-50 p-4 rounded border">
                     <p className="text-gray-500">Total Active Time</p>
                     <p className="text-lg font-medium">
@@ -218,6 +240,26 @@ const Profile = () => {
                         {formatMinutes(userData.last30Days)}
                     </p>
                 </div>
+            </div>
+
+            {/* Practice Info */}
+            <div className="max-w-md mx-auto bg-gray-50 p-4 rounded border">
+                <h3 className="text-lg font-semibold mb-2">Practice Information</h3>
+                {practiceData ? (
+                    <>
+                        <p>
+                            <strong>Score:</strong> {practiceData.score}
+                        </p>
+                        <p>
+                            <strong>Status:</strong> {practiceData.status}
+                        </p>
+                        <p>
+                            <strong>Score Finish:</strong> {practiceData.scoreFinish}
+                        </p>
+                    </>
+                ) : (
+                    <p className="text-gray-500">No practice data available.</p>
+                )}
             </div>
 
             {/* Modal chọn ảnh */}
