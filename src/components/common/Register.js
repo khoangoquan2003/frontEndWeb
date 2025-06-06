@@ -6,6 +6,7 @@ const Register = () => {
     const navigate = useNavigate();
     const [nickName, setNickName] = useState('');
     const [userName, setUserName] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -15,25 +16,23 @@ const Register = () => {
         setError('');
         setSuccess('');
 
-        console.log("Dữ liệu gửi lên:", { nickName, userName, password });
+        const payload = {
+            username: userName,
+            password,
+            email,
+            nickName
+        };
+
+        console.log("Dữ liệu gửi lên:", payload);
 
         try {
-            const response = await axios.post("http://localhost:8080/api/create-user", {
-                nickName,
-                userName,
-                password
-            });
+            const response = await axios.post("http://localhost:8080/auth/register", payload);
 
             console.log("Response từ server:", response.data);
 
-            if (response.data.result) {
-                setSuccess('Đăng ký thành công!');
+            setSuccess('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận.');
 
-                // Chuyển ngay sang trang Login sau 1 giây
-                setTimeout(() => navigate('/login'), 1000);
-            } else {
-                setError(response.data.message || 'Đăng ký thất bại! Vui lòng thử lại.');
-            }
+            setTimeout(() => navigate('/login'), 3000);
         } catch (err) {
             console.error('Lỗi:', err.response || err);
             setError(err.response?.data?.message || 'Đăng ký thất bại! Vui lòng thử lại.');
@@ -64,6 +63,14 @@ const Register = () => {
                         required
                     />
                     <input
+                        type="email"
+                        placeholder="Email"
+                        className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    />
+                    <input
                         type="password"
                         placeholder="Password"
                         className="w-full p-2 border rounded-md mb-3 focus:outline-none focus:ring focus:ring-blue-300"
@@ -76,10 +83,9 @@ const Register = () => {
                     </button>
                 </form>
                 <div className="text-sm text-center mt-3">
-                   Have an account? |
-
+                    Have an account?{' '}
                     <span className="text-blue-500 hover:underline cursor-pointer" onClick={() => navigate('/login')}>
-                          Login now
+                        Login now
                     </span>
                 </div>
             </div>
