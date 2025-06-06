@@ -44,7 +44,7 @@ const Notifications = () => {
     }, []);
 
     return (
-        <div className="max-w-2xl mx-auto mt-10 px-4">
+        <div className="max-w-2xl mx-auto mt-10 px-4 mb-20">
             <h1 className="text-2xl font-bold mb-4">🔔 Thông báo</h1>
 
             {loading ? (
@@ -52,7 +52,7 @@ const Notifications = () => {
             ) : notifications.length === 0 ? (
                 <p className="text-gray-600 italic">Không có thông báo nào.</p>
             ) : (
-                <ul className="space-y-6 mb-10">
+                <ul className="space-y-6 mb-20">
                     {notifications.map((note) => {
                         const firstLetter = note.message?.charAt(0).toUpperCase() || '?';
 
