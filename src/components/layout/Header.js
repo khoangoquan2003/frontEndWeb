@@ -305,54 +305,54 @@ const Header = ({ nickname: propNickname }) => {
 
 
                         {/* User dropdown */}
-                        <div className="relative flex items-center space-x-1">
-                            <FaUserCircle />
-                            <span
-                                className="cursor-pointer"
-                                onClick={() => handleDropdownToggle('user')}
-                            >
-                                {nickname || "Guest"} ▾
-                            </span>
-                            {isUserDropdownOpen && (
-                                <div className="absolute top-full right-0 bg-white shadow rounded-md mt-1 w-48 z-10">
-                                    <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">👤 Profile Info</Link>
-                                    <Link to="/notifications" className="block px-4 py-2 hover:bg-gray-100">
-                                        🔔 Notifications ({notificationCount})
-                                    </Link>
-                                    <Link to="/comments" className="block px-4 py-2 hover:bg-gray-100">
-                                        💬 Comments ({commentCount})
-                                    </Link>
-
-                                    <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">
-                                        ⭐ Favourites ({favoriteCount})
-                                    </Link>
-                                    <div className="border-t my-1"></div>
-                                    <Link to="/changePassword" className="block px-4 py-2 hover:bg-gray-100">🔑 Change Password</Link>
-                                    <Link to="/changeMail" className="block px-4 py-2 hover:bg-gray-100">✉️ Change Email</Link>
-                                    <div className="border-t my-1"></div>
-                                    {nickname ? (
+                        {/* User dropdown or Login */}
+                        {nickname ? (
+                            <div className="relative flex items-center space-x-1">
+                                <FaUserCircle />
+                                <span
+                                    className="cursor-pointer"
+                                    onClick={() => handleDropdownToggle('user')}
+                                >
+            {nickname} ▾
+        </span>
+                                {isUserDropdownOpen && (
+                                    <div className="absolute top-full right-0 bg-white shadow rounded-md mt-1 w-48 z-10">
+                                        <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">👤 Profile Info</Link>
+                                        <Link to="/notifications" className="block px-4 py-2 hover:bg-gray-100">
+                                            🔔 Notifications ({notificationCount})
+                                        </Link>
+                                        <Link to="/comments" className="block px-4 py-2 hover:bg-gray-100">
+                                            💬 Comments ({commentCount})
+                                        </Link>
+                                        <Link to="/favourites" className="block px-4 py-2 hover:bg-gray-100">
+                                            ⭐ Favourites ({favoriteCount})
+                                        </Link>
+                                        <div className="border-t my-1"></div>
+                                        <Link to="/changePassword" className="block px-4 py-2 hover:bg-gray-100">🔑 Change Password</Link>
+                                        <Link to="/changeMail" className="block px-4 py-2 hover:bg-gray-100">✉️ Change Email</Link>
+                                        <div className="border-t my-1"></div>
                                         <Link
                                             to="/login"
                                             onClick={(e) => {
-                                                e.preventDefault(); // ngăn reload trang
+                                                e.preventDefault();
                                                 handleLogout();
                                             }}
                                             className="block px-4 py-2 hover:bg-red-100 text-red-600"
                                         >
                                             🚪 Logout
                                         </Link>
-                                    ) : (
-                                        <Link
-                                            to="/login"
-                                            className="block px-4 py-2 hover:bg-blue-100 text-blue-600"
-                                        >
-                                            🔐 Login
-                                        </Link>
-                                    )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div
+                                className="flex items-center space-x-1 text-600 hover:underline cursor-pointer"
+                                onClick={() => navigate('/login')}
+                            >
 
-                                </div>
-                            )}
-                        </div>
+                                <span>🔐 Login</span>
+                            </div>
+                        )}
 
                         {/* Theme settings */}
                         <div className="relative">

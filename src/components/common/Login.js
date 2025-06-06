@@ -11,14 +11,7 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setError(''); // Reset error message before each login attempt
-
-        // Simple email validation check
-        const isEmail = userName.includes('@');
-        if (isEmail && !/\S+@\S+\.\S+/.test(userName)) {
-            setError("Please enter a valid email address.");
-            return;
-        }
+        setError('');
 
         try {
             const response = await axios.post("http://localhost:8080/auth/test-log-in", {
@@ -32,13 +25,11 @@ const Login = () => {
             const nickname = response.data?.result?.nickName;
             const userId = response.data?.result?.userId;
             if (token) {
-                // Store the user info in localStorage, including username
                 localStorage.setItem("token", token);
                 localStorage.setItem("nickname", nickname);
                 localStorage.setItem("userId", userId);
-                localStorage.setItem("userName", userName); // Save username
+                localStorage.setItem("userName", userName);
 
-                // Navigate to the HomePage
                 navigate("/homepage", { state: { loginSuccess: true, nickname } });
             } else {
                 setError("Incorrect username or password.");
