@@ -109,10 +109,10 @@ const Profile = () => {
             const token = localStorage.getItem("token");
 
             const formData = new FormData();
-            formData.append("avatar", selectedFile);
+            formData.append("newImage", selectedFile);
 
             const response = await http.put(
-                `/api/upload-avatar`,
+                `/api/edit-image`,
                 formData,
                 {
                     params: { userId },

@@ -59,7 +59,7 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
                 userId,
                 commentId,
                 courseId,
-                reaction: alreadyLiked ? "Like" : "Like"
+                reaction: alreadyLiked ? "Unlike" : "Like"
             };
 
             await http.post("/api/reaction", requestData);
