@@ -21,7 +21,9 @@ export default function UserManagement() {
                     username: user.userName || 'N/A',
                     email: user.gmail || 'N/A',
                     role: user.roles?.[0] || 'User',
+                    img: user.img || '' // 👈 thêm dòng này
                 }));
+
                 setUsers(mappedUsers);
             }
         } catch (error) {
@@ -96,16 +98,25 @@ export default function UserManagement() {
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                         <tr>
+                            <th className="border-b p-4 text-left">Avatar</th> {/* 👈 thêm dòng này */}
                             <th className="border-b p-4 text-left">Username</th>
                             <th className="border-b p-4 text-left">Email</th>
                             <th className="border-b p-4 text-left">Role</th>
                             <th className="border-b p-4 text-left">Actions</th>
                         </tr>
                         </thead>
+
                         <tbody>
                         {users.length > 0 ? (
                             users.map(user => (
                                 <tr key={user.id}>
+                                    <td className="border-b p-4">
+                                        {user.img ? (
+                                            <img src={user.img} alt="avatar" className="w-10 h-10 rounded-full object-cover" />
+                                        ) : (
+                                            <span className="text-gray-400 italic">No Image</span>
+                                        )}
+                                    </td>
                                     <td className="border-b p-4">{user.username}</td>
                                     <td className="border-b p-4">{user.email}</td>
                                     <td className="border-b p-4">{user.role}</td>
@@ -127,7 +138,7 @@ export default function UserManagement() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="4" className="p-4 text-center">No users found</td>
+                                <td colSpan="5" className="p-4 text-center">No users found</td>
                             </tr>
                         )}
                         </tbody>

@@ -1,119 +1,124 @@
-// DictationList.jsx
-import React, { useState } from 'react';
-
-const sampleDictations = [
-    {
-        id: 1,
-        title: 'Lesson 1 - Morning Routine',
-        transcript: 'I wake up at 7 am every day...',
-        audioUrl: 'https://example.com/audio1.mp3'
-    },
-    {
-        id: 2,
-        title: 'Lesson 2 - At the Market',
-        transcript: 'The market is crowded and noisy...',
-        audioUrl: 'https://example.com/audio2.mp3'
-    }
-];
+import React, { useEffect, useState } from 'react';
+import { http } from '../api/Http';
 
 export default function DictationList() {
-    const [dictations, setDictations] = useState(sampleDictations);
-    const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ title: '', transcript: '', audioUrl: '' });
+    const [dictations, setDictations] = useState([]);
+    const [sectionsByTopic, setSectionsByTopic] = useState({});
+    const [loadingDictations, setLoadingDictations] = useState(false);
+    const [loadingSections, setLoadingSections] = useState({});
 
-    const handleAddNew = () => {
-        if (!formData.title || !formData.transcript || !formData.audioUrl) {
-            alert('Please fill all fields!');
-            return;
+    useEffect(() => {
+        fetchDictations();
+    }, []);
+
+    const fetchDictations = async () => {
+        setLoadingDictations(true);
+        try {
+            const response = await http.get('/api/show-all-topic');
+            if (response.data.code === 200 && Array.isArray(response.data.result)) {
+                setDictations(response.data.result);
+            } else {
+                console.warn('Unexpected API response', response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch dictations', error);
         }
-        const newDictation = {
-            id: dictations.length + 1,
-            ...formData
-        };
-        setDictations([...dictations, newDictation]);
-        setFormData({ title: '', transcript: '', audioUrl: '' });
-        setShowForm(false);
+        setLoadingDictations(false);
+    };
+
+    const fetchSectionsForTopic = async (topicId) => {
+        if (sectionsByTopic[topicId]) return;
+
+        setLoadingSections((prev) => ({ ...prev, [topicId]: true }));
+        try {
+            const response = await http.get('/api/show-all-section', {
+                params: { topicId },
+            });
+            if (response.data.code === 200 && Array.isArray(response.data.result)) {
+                setSectionsByTopic((prev) => ({
+                    ...prev,
+                    [topicId]: response.data.result,
+                }));
+            } else {
+                console.warn('Unexpected section API response', response.data);
+            }
+        } catch (error) {
+            console.error(`Failed to fetch sections for topic ${topicId}`, error);
+        }
+        setLoadingSections((prev) => ({ ...prev, [topicId]: false }));
+    };
+
+    const handleDropdownFocus = (topicId) => {
+        fetchSectionsForTopic(topicId);
     };
 
     return (
-        <div style={{ padding: '20px', marginLeft: '16rem' }}> {/* Thêm margin-left để tránh bị che khuất bởi sidebar */}
-            <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-semibold mb-6">🧠 DailyDict Admin</h2>
-                    <button
-                        className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition"
-                        onClick={() => setShowForm(true)}
-                    >
-                        + Add New
-                    </button>
-                </div>
+        <div style={{ padding: '20px', marginLeft: '16rem' }}>
+            <h2 className="text-2xl font-semibold mb-6">🧠 DailyDict Admin</h2>
 
+            {loadingDictations ? (
+                <p>Loading topics...</p>
+            ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {dictations.map(dict => (
-                        <div key={dict.id} className="bg-white p-6 rounded-lg shadow-lg">
-                            <h3 className="font-semibold text-xl mb-3">{dict.title}</h3>
-                            <audio controls src={dict.audioUrl} className="w-full mb-4" />
-                            <p className="text-sm"><strong>Transcript:</strong> {dict.transcript}</p>
-                            <div className="mt-4 flex space-x-4">
-                                <button
-                                    className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition"
-                                    onClick={() => alert("Edit feature coming soon")}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition"
-                                    onClick={() => alert("Delete feature coming soon")}
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                    {dictations.map((topic) => {
+                        console.log('Topic data:', topic); // <-- log dữ liệu từng topic ở đây
+                        return (
+                            <div key={topic.id} className="bg-white p-6 rounded-lg shadow-lg">
+                                {topic.img && (
+                                    <img
+                                        src={topic.img}
+                                        alt={topic.title || `Topic #${topic.id}`}
+                                        className="w-full h-40 object-cover rounded-md mb-4"
+                                    />
+                                )}
 
-                {showForm && (
-                    <div className="fixed inset-0 flex justify-center items-center bg-gray-600 bg-opacity-50 z-50">
-                        <div className="bg-white p-8 rounded-lg shadow-lg w-full sm:w-96">
-                            <h3 className="text-xl font-semibold mb-6">Add New Dictation</h3>
-                            <label className="block mb-2 text-sm font-medium">Title:</label>
-                            <input
-                                type="text"
-                                value={formData.title}
-                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <label className="block mb-2 text-sm font-medium">Transcript:</label>
-                            <textarea
-                                value={formData.transcript}
-                                onChange={(e) => setFormData({ ...formData, transcript: e.target.value })}
-                                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            ></textarea>
-                            <label className="block mb-2 text-sm font-medium">Audio URL:</label>
-                            <input
-                                type="text"
-                                value={formData.audioUrl}
-                                onChange={(e) => setFormData({ ...formData, audioUrl: e.target.value })}
-                                className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                            <div className="flex justify-between mt-4">
-                                <button
-                                    onClick={handleAddNew}
-                                    className="bg-green-500 text-white py-2 px-6 rounded-lg hover:bg-green-600 transition"
+
+                                <h3 className="font-semibold text-xl mb-3">
+                                    {topic.type || topic.title || `Topic #${topic.id}`}
+                                </h3>
+
+                                {/* Phần dropdown, nút Edit/Delete giữ nguyên */}
+                                <label htmlFor={`section-select-${topic.id}`} className="block mb-2 font-medium">
+                                    Sections:
+                                </label>
+
+                                <select
+                                    id={`section-select-${topic.id}`}
+                                    className="w-full p-2 border rounded"
+                                    onFocus={() => handleDropdownFocus(topic.id)}
+                                    defaultValue=""
                                 >
-                                    Save
-                                </button>
-                                <button
-                                    onClick={() => setShowForm(false)}
-                                    className="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition"
-                                >
-                                    Cancel
-                                </button>
+                                    <option value="" disabled>
+                                        {loadingSections[topic.id] ? 'Loading sections...' : 'Select a section'}
+                                    </option>
+
+                                    {sectionsByTopic[topic.id] &&
+                                        sectionsByTopic[topic.id].map((section) => (
+                                            <option key={section.id} value={section.id}>
+                                                {section.name} (Courses: {section.countOfCourse})
+                                            </option>
+                                        ))}
+                                </select>
+
+                                <div className="mt-4 flex space-x-4">
+                                    <button
+                                        className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition"
+                                        onClick={() => alert('Edit feature coming soon')}
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition"
+                                        onClick={() => alert('Delete feature coming soon')}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
