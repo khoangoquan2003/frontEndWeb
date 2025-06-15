@@ -5,7 +5,11 @@ import { FaClock, FaRegStickyNote, FaStar, FaUserCircle, FaCog } from 'react-ico
 import { http } from "../../api/Http";
 
 const Header = ({ nickname: propNickname }) => {
-    const [nickname, setNickname] = useState(propNickname || localStorage.getItem("nickname"));
+    const [nickname, setNickname] = useState(null);
+
+    useEffect(() => {
+        setNickname(localStorage.getItem("nickname"));
+    }, []);
     const navigate = useNavigate();
     const [commentCount, setCommentCount] = useState(0);
     const [notificationCount, setNotificationCount] = useState(0);
@@ -25,7 +29,13 @@ const Header = ({ nickname: propNickname }) => {
     const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
 
     // Theme State
-    const [theme, setTheme] = useState("light");
+    const [userId, setUserId] = useState(null);
+
+    useEffect(() => {
+        const storedId = localStorage.getItem("userId");
+        if (storedId) setUserId(parseInt(storedId));
+    }, []);
+
     useEffect(() => {
         const userId = localStorage.getItem('userId');
         if (!userId) return;
@@ -33,8 +43,9 @@ const Header = ({ nickname: propNickname }) => {
         const fetchFavoriteCount = async () => {
             try {
                 const response = await http.get(`/api/show-all-favorite-course`, {
-                    params: { userId: parseInt(userId) },
+                    params: { userId },
                 });
+
                 if (response.data && Array.isArray(response.data.result)) {
                     setFavoriteCount(response.data.result.length);
                 }
@@ -89,12 +100,6 @@ const Header = ({ nickname: propNickname }) => {
         window.addEventListener("storage", syncNickname);
         return () => window.removeEventListener("storage", syncNickname);
     }, []);
-    // Toggle theme
-    const toggleTheme = (selectedTheme) => {
-        setTheme(selectedTheme);
-        document.documentElement.classList.toggle('dark', selectedTheme === 'dark');
-        setIsThemeDropdownOpen(false);
-    };
     useEffect(() => {
         const fetchNotes = async () => {
             const userId = localStorage.getItem("userId");
@@ -138,10 +143,10 @@ const Header = ({ nickname: propNickname }) => {
     };
 
     const handleLogout = () => {
-        const userId = localStorage.getItem("userId");
-        console.log("userId remove:"+userId);
-        localStorage.removeItem("nickname"); // 👈 nên chỉ remove cụ thể thay vì clear toàn bộ
+        console.log("userId remove:" + userId);
+        localStorage.removeItem("nickname");
         localStorage.removeItem("userId");
+        setUserId(null); // 👈 thêm dòng này
         setNickname(null);
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",
@@ -362,22 +367,7 @@ const Header = ({ nickname: propNickname }) => {
                             >
                                 <FaCog />
                             </div>
-                            {isThemeDropdownOpen && (
-                                <div className="absolute right-0 mt-1 bg-white shadow rounded-md text-gray-700 w-32 z-10 dark:bg-gray-800 dark:text-white">
-                                    <button
-                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => toggleTheme('light')}
-                                    >
-                                        🌞 Light Mode
-                                    </button>
-                                    <button
-                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                        onClick={() => toggleTheme('dark')}
-                                    >
-                                        🌙 Dark Mode
-                                    </button>
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 </div>

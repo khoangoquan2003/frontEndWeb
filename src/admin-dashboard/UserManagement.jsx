@@ -6,6 +6,9 @@ export default function UserManagement() {
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({ id: null, username: '', email: '', role: '' });
 
+    // Lấy userId người dùng hiện tại từ localStorage
+    const currentUserId = parseInt(localStorage.getItem("userId"));
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -21,7 +24,7 @@ export default function UserManagement() {
                     username: user.userName || 'N/A',
                     email: user.gmail || 'N/A',
                     role: user.roles?.[0] || 'User',
-                    img: user.img || '' // 👈 thêm dòng này
+                    img: user.img || ''
                 }));
 
                 setUsers(mappedUsers);
@@ -46,12 +49,12 @@ export default function UserManagement() {
         }
 
         if (id) {
-            // Update user locally (replace with http.put if needed)
+            // Update user locally (có thể thay bằng http.put)
             setUsers(prevUsers =>
                 prevUsers.map(user => user.id === id ? { id, username, email, role } : user)
             );
         } else {
-            // Add user locally (replace with http.post if needed)
+            // Add user locally (có thể thay bằng http.post)
             const newUser = {
                 id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
                 username,
@@ -77,8 +80,16 @@ export default function UserManagement() {
         }
     };
 
-    const handleDeleteUser = (id) => {
-        setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
+    const handleDeleteUser = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this user?")) return;
+
+        try {
+            await http.delete(`/api/delete-user`, { params: { userId: id } });
+            setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
+        } catch (error) {
+            console.error("Failed to delete user:", error);
+            alert("Error deleting user.");
+        }
     };
 
     return (
@@ -98,7 +109,7 @@ export default function UserManagement() {
                     <table className="min-w-full bg-white border border-gray-300">
                         <thead>
                         <tr>
-                            <th className="border-b p-4 text-left">Avatar</th> {/* 👈 thêm dòng này */}
+                            <th className="border-b p-4 text-left">Avatar</th>
                             <th className="border-b p-4 text-left">Username</th>
                             <th className="border-b p-4 text-left">Email</th>
                             <th className="border-b p-4 text-left">Role</th>
@@ -127,12 +138,15 @@ export default function UserManagement() {
                                         >
                                             Edit
                                         </button>
-                                        <button
-                                            onClick={() => handleDeleteUser(user.id)}
-                                            className="text-red-600 px-2 py-1"
-                                        >
-                                            Delete
-                                        </button>
+                                        {/* Ẩn nút Delete nếu là chính user đang đăng nhập */}
+                                        {user.id !== currentUserId && (
+                                            <button
+                                                onClick={() => handleDeleteUser(user.id)}
+                                                className="text-red-600 px-2 py-1"
+                                            >
+                                                Delete
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))

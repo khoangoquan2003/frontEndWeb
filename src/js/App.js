@@ -27,6 +27,7 @@ import UserManagement from '../admin-dashboard/UserManagement';  // Import thêm
 import OAuthRedirectHandler from "../components/common/OAuthRedirectHandler";
 import OAuthSuccess from '../components/common/OAuthSuccess';
 import ForgotPassword from "../components/common/ForgotPassword";
+import { Navigate } from "react-router-dom";
 
 
 const Layout = ({ children, nickname, onLogout }) => {
@@ -85,11 +86,12 @@ function AppWrapper() {
 
                 {/* Admin Layout Pages */}
                 <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<Navigate to="dashboard" replace />} /> {/* 👈 THÊM DÒNG NÀY */}
                     <Route path="dictations" element={<DictationList />} />
                     <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="/admin/users" element={<UserManagement />} />  {/* Thêm route cho UserManagement */}
-                    {/* Thêm route admin khác nếu cần */}
+                    <Route path="users" element={<UserManagement />} />
                 </Route>
+
 
                 {/* Default Layout Pages */}
                 <Route
