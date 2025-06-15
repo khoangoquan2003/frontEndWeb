@@ -1,41 +1,86 @@
-import React, { useState } from 'react';
-
-const sampleUsers = [
-    { id: 1, username: 'john_doe', email: 'john@example.com', role: 'Admin' },
-    { id: 2, username: 'jane_doe', email: 'jane@example.com', role: 'User' },
-];
+import React, { useState, useEffect } from 'react';
+import { http } from "../api/Http";
 
 export default function UserManagement() {
-    const [users, setUsers] = useState(sampleUsers);
+    const [users, setUsers] = useState([]);
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ username: '', email: '', role: '' });
+    const [formData, setFormData] = useState({ id: null, username: '', email: '', role: '' });
 
-    const handleAddUser = () => {
-        if (!formData.username || !formData.email || !formData.role) {
-            alert('Please fill all fields!');
-            return;
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
+        try {
+            const response = await http.get('/api/get-all-user');
+            console.log('Raw API response:', response.data);
+
+            if (response.data.code === 200) {
+                const mappedUsers = response.data.result.map(user => ({
+                    id: user.id,
+                    username: user.userName || 'N/A',
+                    email: user.gmail || 'N/A',
+                    role: user.roles?.[0] || 'User',
+                }));
+                setUsers(mappedUsers);
+            }
+        } catch (error) {
+            console.error('Error fetching users:', error);
+            alert('Failed to fetch users!');
         }
-        const newUser = {
-            id: users.length + 1,
-            ...formData
-        };
-        setUsers([...users, newUser]);
-        setFormData({ username: '', email: '', role: '' });
+    };
+
+    const resetForm = () => {
+        setFormData({ id: null, username: '', email: '', role: '' });
         setShowForm(false);
     };
 
-    const handleDeleteUser = (id) => {
-        setUsers(users.filter(user => user.id !== id));
+    const handleSaveUser = () => {
+        const { id, username, email, role } = formData;
+
+        if (!username || !email || !role) {
+            alert('Please fill all fields!');
+            return;
+        }
+
+        if (id) {
+            // Update user locally (replace with http.put if needed)
+            setUsers(prevUsers =>
+                prevUsers.map(user => user.id === id ? { id, username, email, role } : user)
+            );
+        } else {
+            // Add user locally (replace with http.post if needed)
+            const newUser = {
+                id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
+                username,
+                email,
+                role
+            };
+            setUsers(prevUsers => [...prevUsers, newUser]);
+        }
+
+        resetForm();
     };
 
     const handleEditUser = (id) => {
-        const userToEdit = users.find(user => user.id === id);
-        setFormData(userToEdit);
-        setShowForm(true);
+        const user = users.find(u => u.id === id);
+        if (user) {
+            setFormData({
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            });
+            setShowForm(true);
+        }
+    };
+
+    const handleDeleteUser = (id) => {
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
     };
 
     return (
-        <div style={{ padding: '20px', marginLeft: '16rem' }}> {/* Thêm margin-left để tránh bị che khuất bởi sidebar */}
+        <div style={{ padding: '20px', marginLeft: '16rem' }}>
             <div className="user-management-container">
                 <div className="header flex justify-between items-center">
                     <h2 className="text-2xl font-semibold">👥 User Management</h2>
@@ -58,27 +103,33 @@ export default function UserManagement() {
                         </tr>
                         </thead>
                         <tbody>
-                        {users.map(user => (
-                            <tr key={user.id}>
-                                <td className="border-b p-4">{user.username}</td>
-                                <td className="border-b p-4">{user.email}</td>
-                                <td className="border-b p-4">{user.role}</td>
-                                <td className="border-b p-4">
-                                    <button
-                                        onClick={() => handleEditUser(user.id)}
-                                        className="text-blue-600 px-2 py-1 mr-2"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteUser(user.id)}
-                                        className="text-red-600 px-2 py-1"
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
+                        {users.length > 0 ? (
+                            users.map(user => (
+                                <tr key={user.id}>
+                                    <td className="border-b p-4">{user.username}</td>
+                                    <td className="border-b p-4">{user.email}</td>
+                                    <td className="border-b p-4">{user.role}</td>
+                                    <td className="border-b p-4">
+                                        <button
+                                            onClick={() => handleEditUser(user.id)}
+                                            className="text-blue-600 px-2 py-1 mr-2"
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteUser(user.id)}
+                                            className="text-red-600 px-2 py-1"
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="4" className="p-4 text-center">No users found</td>
                             </tr>
-                        ))}
+                        )}
                         </tbody>
                     </table>
                 </div>
@@ -86,7 +137,10 @@ export default function UserManagement() {
                 {showForm && (
                     <div className="modal fixed inset-0 bg-gray-500 bg-opacity-75 flex justify-center items-center">
                         <div className="modal-content bg-white p-6 rounded-md w-1/3">
-                            <h3 className="text-xl mb-4">{formData.id ? 'Edit User' : 'Add New User'}</h3>
+                            <h3 className="text-xl mb-4">
+                                {formData.id ? 'Edit User' : 'Add New User'}
+                            </h3>
+
                             <label className="block mb-2">Username:</label>
                             <input
                                 type="text"
@@ -94,6 +148,7 @@ export default function UserManagement() {
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                                 className="border p-2 mb-4 w-full"
                             />
+
                             <label className="block mb-2">Email:</label>
                             <input
                                 type="email"
@@ -101,6 +156,7 @@ export default function UserManagement() {
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 className="border p-2 mb-4 w-full"
                             />
+
                             <label className="block mb-2">Role:</label>
                             <select
                                 value={formData.role}
@@ -111,15 +167,16 @@ export default function UserManagement() {
                                 <option value="Admin">Admin</option>
                                 <option value="User">User</option>
                             </select>
+
                             <div className="modal-actions flex justify-end">
                                 <button
-                                    onClick={handleAddUser}
+                                    onClick={handleSaveUser}
                                     className="bg-blue-600 text-white p-2 rounded-md mr-2"
                                 >
                                     Save
                                 </button>
                                 <button
-                                    onClick={() => setShowForm(false)}
+                                    onClick={resetForm}
                                     className="bg-gray-300 p-2 rounded-md"
                                 >
                                     Cancel
