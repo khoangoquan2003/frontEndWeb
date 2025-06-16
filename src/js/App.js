@@ -28,7 +28,7 @@ import OAuthRedirectHandler from "../components/common/OAuthRedirectHandler";
 import OAuthSuccess from '../components/common/OAuthSuccess';
 import ForgotPassword from "../components/common/ForgotPassword";
 import { Navigate } from "react-router-dom";
-
+import CourseDetailPage from '../admin-dashboard/CourseDetailPage'; // THÊM DÒNG NÀY
 
 const Layout = ({ children, nickname, onLogout }) => {
     const location = useLocation();
@@ -86,11 +86,15 @@ function AppWrapper() {
 
                 {/* Admin Layout Pages */}
                 <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<Navigate to="dashboard" replace />} /> {/* 👈 THÊM DÒNG NÀY */}
-                    <Route path="dictations" element={<DictationList />} />
+                    <Route index element={<Navigate to="dashboard" replace />} />
                     <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="dictations" element={<DictationList />} />
                     <Route path="users" element={<UserManagement />} />
+
+                    {/* ✅ Trang chi tiết course */}
+                    <Route path="course/:courseId" element={<CourseDetailPage />} />
                 </Route>
+
 
 
                 {/* Default Layout Pages */}
@@ -99,6 +103,7 @@ function AppWrapper() {
                     element={
                         <Layout nickname={nickname} onLogout={handleLogout}>
                             <Routes>
+
                                 <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
                                 <Route path="/oauth-success" element={<OAuthSuccess />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />
