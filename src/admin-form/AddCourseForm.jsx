@@ -87,31 +87,74 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
                 <h4 className="text-xl font-bold mb-4">➕ Thêm Course mới</h4>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <input type="text" name="name" placeholder="Tên Course" onChange={handleChange} required className="w-full border p-2 rounded" />
-                    <input type="text" name="level" placeholder="Level" onChange={handleChange} required className="w-full border p-2 rounded" />
-                    <input type="file" name="mainAudio" onChange={handleChange} required className="w-full border p-2 rounded" />
-                    <textarea name="transcript" placeholder="Transcript" onChange={handleChange} className="w-full border p-2 rounded" />
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Tên Course"
+                        onChange={handleChange}
+                        required
+                        className="w-full border p-2 rounded"
+                    />
+
+                    <select
+                        name="level"
+                        onChange={handleChange}
+                        required
+                        className="w-full border p-2 rounded"
+                        value={formData.level}
+                    >
+                        <option value="" disabled>-- Chọn Level --</option>
+                        <option value="A1">A1</option>
+                        <option value="A2">A2</option>
+                        <option value="B1">B1</option>
+                        <option value="B2">B2</option>
+                        <option value="C1">C1</option>
+                        <option value="C2">C2</option>
+                    </select>
+
+                    <label className="block mb-1 font-semibold">Main Audio</label>
+                    <input
+                        type="file"
+                        name="mainAudio"
+                        onChange={handleChange}
+                        required
+                        className="w-full border p-2 rounded"
+                    />
+
+                    <textarea
+                        name="transcript"
+                        placeholder="Transcript"
+                        onChange={handleChange}
+                        className="w-full border p-2 rounded"
+                    />
 
                     {formData.sentences.map((_, i) => (
-                        <div key={i} className="flex gap-2">
-                            <input
-                                type="text"
-                                name={`sentence-${i}`}
-                                placeholder={`Sentence ${i + 1}`}
-                                value={formData.sentences[i]}
-                                onChange={handleChange}
-                                className="w-1/2 border p-2 rounded"
-                                required
-                            />
-                            <input
-                                type="file"
-                                name={`sentenceAudio-${i}`}
-                                onChange={handleChange}
-                                className="w-1/2 border p-2 rounded"
-                                required
-                            />
+                        <div key={i} className="flex gap-2 items-center">
+                            <div className="flex-1">
+                                <label className="block mb-1 font-semibold">{`Sentence ${i + 1}`}</label>
+                                <input
+                                    type="text"
+                                    name={`sentence-${i}`}
+                                    placeholder={`Sentence ${i + 1}`}
+                                    value={formData.sentences[i]}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded"
+                                    required
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block mb-1 font-semibold">{`Audio for Sentence ${i + 1}`}</label>
+                                <input
+                                    type="file"
+                                    name={`sentenceAudio-${i}`}
+                                    onChange={handleChange}
+                                    className="w-full border p-2 rounded"
+                                    required
+                                />
+                            </div>
                         </div>
                     ))}
+
 
                     <button type="button" onClick={addSentenceField} className="text-blue-600 underline">
                         + Thêm câu

@@ -29,6 +29,7 @@ import OAuthSuccess from '../components/common/OAuthSuccess';
 import ForgotPassword from "../components/common/ForgotPassword";
 import { Navigate } from "react-router-dom";
 import CourseDetailPage from '../admin-dashboard/CourseDetailPage'; // THÊM DÒNG NÀY
+import AdminRoute from "../admin-route/AdminRoute"; // 🔽 Import ở đầu file
 
 const Layout = ({ children, nickname, onLogout }) => {
     const location = useLocation();
@@ -85,15 +86,16 @@ function AppWrapper() {
                 <Route path="/register" element={<Register />} />
 
                 {/* Admin Layout Pages */}
-                <Route path="/admin" element={<AdminLayout />}>
-                    <Route index element={<Navigate to="dashboard" replace />} />
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="dictations" element={<DictationList />} />
-                    <Route path="users" element={<UserManagement />} />
-
-                    {/* ✅ Trang chi tiết course */}
-                    <Route path="course/:courseId" element={<CourseDetailPage />} />
+                <Route path="/admin" element={<AdminRoute />}>
+                    <Route element={<AdminLayout />}>
+                        <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route path="dashboard" element={<Dashboard />} />
+                        <Route path="dictations" element={<DictationList />} />
+                        <Route path="users" element={<UserManagement />} />
+                        <Route path="course/:courseId" element={<CourseDetailPage />} />
+                    </Route>
                 </Route>
+
 
 
 

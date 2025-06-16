@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import dlImage from '../../assets/img/1.jpg';
+import { jwtDecode } from 'jwt-decode'; // ✅ Đúng cú pháp
+import { toast } from 'react-toastify'; // ✅ Thêm dòng này ở đầu file
 
 const Login = () => {
     const navigate = useNavigate();
@@ -24,23 +26,41 @@ const Login = () => {
             const token = response.data?.result?.token;
             const nickname = response.data?.result?.nickName;
             const userId = response.data?.result?.userId;
+
             if (token) {
+                // 🔐 Lưu token và thông tin khác vào localStorage
                 localStorage.setItem("token", token);
                 localStorage.setItem("nickname", nickname);
                 localStorage.setItem("userId", userId);
                 localStorage.setItem("userName", userName);
 
-                navigate("/homepage", { state: { loginSuccess: true, nickname } });
+                const decoded = jwtDecode(token);
+                const role = decoded.scope || decoded.role || decoded.authorities?.[0];
+
+                console.log("Decoded token:", decoded);
+
+                // ✅ Hiện toast thông báo đăng nhập thành công
+
+                if (role === "ADMIN") {
+                    toast.success("Đăng nhập admin!");
+                    setTimeout(() => {
+                        navigate("/admin", { replace: true });
+                    }, 1000);
+                } else {
+                    // Không toast cho user thường
+                    setTimeout(() => {
+                        navigate("/homepage", { state: { loginSuccess: true, nickname }, replace: true });
+                    }, 0); // có thể để ngay hoặc vẫn giữ 1000 nếu bạn muốn delay
+                }
+
             } else {
                 setError("Incorrect username or password.");
             }
-
         } catch (err) {
             console.error("Login Error:", err);
             setError(err.response?.data?.message || "Login failed!");
         }
     };
-
     const handleGoogleLogin = () => {
         window.location.href = "http://localhost:8080/oauth2/authorization/google";
     };

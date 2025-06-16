@@ -14,6 +14,7 @@ const Header = ({ nickname: propNickname }) => {
     const [commentCount, setCommentCount] = useState(0);
     const [notificationCount, setNotificationCount] = useState(0);
     const [favoriteCount, setFavoriteCount] = useState(0);
+    const [courses, setCourses] = useState([]);
 
     // Modal and Notes States
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,104 +28,104 @@ const Header = ({ nickname: propNickname }) => {
     const [isInProgressDropdownOpen, setIsInProgressDropdownOpen] = useState(false);
     const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
     const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
-
+    const [minutes, setMinutes] = useState(0);
     // Theme State
     const [userId, setUserId] = useState(null);
 
     useEffect(() => {
-        const storedId = localStorage.getItem("userId");
-        if (storedId) setUserId(parseInt(storedId));
-    }, []);
+        const storedUserId = localStorage.getItem("userId");
+        if (storedUserId) setUserId(parseInt(storedUserId));
 
-    useEffect(() => {
-        const userId = localStorage.getItem('userId');
-        if (!userId) return;
-
-        const fetchFavoriteCount = async () => {
+        // Fetch course names
+        const fetchCourseNames = async () => {
             try {
-                const response = await http.get(`/api/show-all-favorite-course`, {
-                    params: { userId },
-                });
-
-                if (response.data && Array.isArray(response.data.result)) {
-                    setFavoriteCount(response.data.result.length);
+                const response = await http.get("/api/all-course-names");
+                if (response.data && response.data.result) {
+                    const courseWithProgress = response.data.result.map(course => ({
+                        id: course.id,
+                        name: course.name,
+                        progress: Math.floor(Math.random() * 101),
+                    }));
+                    setCourses(courseWithProgress);
                 }
             } catch (error) {
-                console.error("Failed to fetch favorite courses:", error);
+                console.error("Failed to fetch courses", error);
             }
         };
 
-        const fetchNotificationCount = async () => {
+        // Fetch favorite, notifications, comments counts
+        const fetchUserDataCounts = async (userId) => {
             try {
-                const response = await http.get(`/api/show-all-notification?userId=${userId}`);
-                if (response.data && Array.isArray(response.data.result)) {
-                    setNotificationCount(response.data.result.length);
-                }
+                const [favRes, notifRes, commentRes] = await Promise.all([
+                    http.get("/api/show-all-favorite-course", { params: { userId } }),
+                    http.get(`/api/show-all-notification?userId=${userId}`),
+                    http.get(`/api/show-comment-user?userId=${userId}`),
+                ]);
+
+                if (favRes.data && Array.isArray(favRes.data.result)) setFavoriteCount(favRes.data.result.length);
+                if (notifRes.data && Array.isArray(notifRes.data.result)) setNotificationCount(notifRes.data.result.length);
+                if (commentRes.data && Array.isArray(commentRes.data.result)) setCommentCount(commentRes.data.result.length);
             } catch (error) {
-                console.error("Failed to fetch notifications:", error);
+                console.error("Failed to fetch user data counts:", error);
             }
         };
 
-        const fetchCommentCount = async () => {
+        // Fetch notes
+        const fetchNotes = async (userId) => {
             try {
-                const response = await http.get(`/api/show-comment-user?userId=${userId}`);
-                if (response.data && Array.isArray(response.data.result)) {
-                    setCommentCount(response.data.result.length);
-                }
-            } catch (error) {
-                console.error("Failed to fetch comment count:", error);
-            }
-        };
-
-        // Lần đầu lấy dữ liệu ngay
-        fetchFavoriteCount();
-        fetchNotificationCount();
-        fetchCommentCount();
-
-        // Poll mỗi 3 giây
-        const intervalId = setInterval(() => {
-            fetchFavoriteCount();
-            fetchNotificationCount();
-            fetchCommentCount();
-        }, 3000);
-
-        // Cleanup khi component unmount
-        return () => clearInterval(intervalId);
-    }, []);
-
-    useEffect(() => {
-        const syncNickname = () => {
-            setNickname(localStorage.getItem("nickname"));
-        };
-
-        window.addEventListener("storage", syncNickname);
-        return () => window.removeEventListener("storage", syncNickname);
-    }, []);
-    useEffect(() => {
-        const fetchNotes = async () => {
-            const userId = localStorage.getItem("userId");
-            console.log("userId login:"+userId);
-            if (!userId) return;
-
-            try {
-                const response = await http.get("/api/show-all-note", {
-                    params: { userId: parseInt(userId) },
-                });
-
+                const response = await http.get("/api/show-all-note", { params: { userId: parseInt(userId) } });
                 const noteList = response?.data?.result;
-                if (Array.isArray(noteList)) {
-                    setNotes(noteList); // ✅ Lưu object: [{noteId, content}]
-                }
+                if (Array.isArray(noteList)) setNotes(noteList);
             } catch (error) {
                 console.error("Failed to fetch notes:", error);
                 toast.error("Failed to load notes.");
             }
         };
 
-        fetchNotes();
+        fetchCourseNames();
+
+        if (storedUserId) {
+            fetchUserDataCounts(storedUserId);
+
+            // Poll every 3 seconds for updates on counts
+            const intervalId = setInterval(() => {
+                fetchUserDataCounts(storedUserId);
+            }, 3000);
+
+            fetchNotes(storedUserId);
+
+            // Cleanup interval on unmount
+            return () => clearInterval(intervalId);
+        }
     }, []);
 
+    useEffect(() => {
+        const syncNickname = () => setNickname(localStorage.getItem("nickname"));
+        window.addEventListener("storage", syncNickname);
+        return () => window.removeEventListener("storage", syncNickname);
+    }, []);
+    useEffect(() => {
+        // Lấy startTime từ localStorage, nếu chưa có thì set hiện tại
+        let startTime = localStorage.getItem("startTime");
+        if (!startTime) {
+            startTime = Date.now();
+            localStorage.setItem("startTime", startTime);
+        }
 
+        // Hàm tính số phút đã trôi qua
+        const updateMinutes = () => {
+            const now = Date.now();
+            const diff = now - parseInt(startTime, 10);
+            const mins = Math.floor(diff / 60000); // 1 phút = 60000 ms
+            setMinutes(mins);
+        };
+
+        updateMinutes(); // tính lần đầu ngay khi mount
+
+        const intervalId = setInterval(updateMinutes, 60000); // update mỗi phút
+
+        return () => clearInterval(intervalId); // cleanup khi unmount
+    }, []);
     // Handle dropdown toggles
     const handleDropdownToggle = (dropdown) => {
         switch (dropdown) {
@@ -141,7 +142,6 @@ const Header = ({ nickname: propNickname }) => {
                 break;
         }
     };
-
     const handleLogout = () => {
         console.log("userId remove:" + userId);
         localStorage.removeItem("nickname");
@@ -156,8 +156,6 @@ const Header = ({ nickname: propNickname }) => {
             navigate("/login");
         }, 1000);
     };
-
-
     const handleSaveNote = async () => {
         const userId = localStorage.getItem("userId");
         if (!userId) {
@@ -208,14 +206,12 @@ const Header = ({ nickname: propNickname }) => {
             toast.error("Failed to save note.");
         }
     };
-
     // Edit note
     const handleEditNote = (index) => {
         setEditingIndex(index);
         setNoteContent(notes[index].content);
         setIsAddNoteForm(true);
     };
-
     // Delete note
     const handleDeleteNote = async (index) => {
         const noteToDelete = notes[index];
@@ -233,7 +229,10 @@ const Header = ({ nickname: propNickname }) => {
             toast.error("Failed to delete note.");
         }
     };
-
+    const handleCourseClick = (course) => {
+        // encodeURIComponent để tránh lỗi ký tự đặc biệt trong URL
+        navigate(`/dictation?courseId=${course.id}&courseName=${encodeURIComponent(course.name)}`);
+    };
     return (
         <header className="bg-white shadow-sm py-2 w-full sticky top-0 z-50 px-4">
             <div className="max-w-screen-xl mx-auto flex flex-col space-y-2 px-6">
@@ -277,9 +276,8 @@ const Header = ({ nickname: propNickname }) => {
                 <div className="flex items-center justify-between space-x-4 text-sm text-gray-700 mt-2">
                     <div className="flex items-center space-x-1">
                         <FaClock />
-                        <span>0 minutes</span>
+                        <span>{minutes} minutes</span>
                     </div>
-
                     <div className="flex items-center space-x-4 ml-auto">
                         {/* In-progress dropdown */}
                         <div className="relative flex items-center space-x-1">
@@ -288,16 +286,29 @@ const Header = ({ nickname: propNickname }) => {
                                 className="cursor-pointer"
                                 onClick={() => handleDropdownToggle('inProgress')}
                             >
-                                In-progress ▾
-                            </span>
+        In-progress ▾
+      </span>
                             {isInProgressDropdownOpen && (
-                                <div className="absolute top-full left-0 bg-white shadow rounded-md mt-1 w-40 z-10">
-                                    <Link to="/in-progress/dictations" className="block px-4 py-2 hover:bg-gray-100">Dictations</Link>
-                                    <Link to="/in-progress/tests" className="block px-4 py-2 hover:bg-gray-100">Tests</Link>
+                                <div className="absolute top-full left-0 bg-white shadow rounded-md mt-1 w-64 max-h-64 overflow-auto z-10 p-2">
+                                    {courses.length === 0 ? (
+                                        <div className="p-4 text-gray-500">Loading...</div>
+                                    ) : (
+                                        courses.map((course, idx) => (
+                                            <div key={idx} className="mb-3 cursor-pointer" onClick={() => handleCourseClick(course)}>
+                                                <div className="font-semibold text-sm text-blue-600 hover:underline">{course.name}</div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div
+                                                        className="bg-blue-600 h-2 rounded-full"
+                                                        style={{ width: `${course.progress}%` }}
+                                                    />
+                                                </div>
+                                                <small className="text-xs text-gray-600">{course.progress}% completed</small>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             )}
-                        </div>
-
+                        </div>                
                         {/* Notes - Open the modal to add/edit note */}
                         <button
                             type="button"
@@ -477,5 +488,4 @@ const Header = ({ nickname: propNickname }) => {
         </header>
     );
 };
-
 export default Header;
