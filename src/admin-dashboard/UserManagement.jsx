@@ -97,12 +97,12 @@ export default function UserManagement() {
             <div className="user-management-container">
                 <div className="header flex justify-between items-center">
                     <h2 className="text-2xl font-semibold">👥 User Management</h2>
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="bg-blue-600 text-white p-2 rounded-md"
-                    >
-                        + Add New User
-                    </button>
+                    {/*<button*/}
+                    {/*    onClick={() => setShowForm(true)}*/}
+                    {/*    className="bg-blue-600 text-white p-2 rounded-md"*/}
+                    {/*>*/}
+                    {/*    + Add New User*/}
+                    {/*</button>*/}
                 </div>
 
                 <div className="user-list mt-6">

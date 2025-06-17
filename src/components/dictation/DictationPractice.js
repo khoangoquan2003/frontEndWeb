@@ -111,16 +111,38 @@ export default function DictationPractice() {
         }
     };
 
-    const handleDownload = (audioUrl) => {
-        if (!audioUrl) {
-            console.error("Không có URL âm thanh để tải về.");
-            return;
+    const handleDownload = async (audioUrl: string) => {
+        try {
+            const response = await http.get(`/api/download?url=${encodeURIComponent(audioUrl)}`, {
+                responseType: 'blob', // 👉 cần có để axios hiểu đây là file
+            });
+
+            const blob = response.data;
+
+            // 👉 Lấy tên file từ header
+            const disposition = response.headers['content-disposition'];
+            let fileName = 'audio.mp3';
+            if (disposition && disposition.includes('filename=')) {
+                const match = disposition.match(/filename\*?=(UTF-8'')?([^;]+)/);
+                if (match && match[2]) {
+                    fileName = decodeURIComponent(match[2]);
+                }
+            }
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Tải xuống không thành công!');
         }
-        const link = document.createElement("a");
-        link.href = audioUrl;
-        link.download = audioUrl.split("/").pop();
-        link.click();
     };
+
 
     const handlePlay = () => {
         if (audioRef.current) {

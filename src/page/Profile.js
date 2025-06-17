@@ -23,54 +23,52 @@ const Profile = () => {
 
     const userId = localStorage.getItem("userId");
 
-    // Fetch user info
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await http.get(`/api/show-information`, {
-                    params: { userId },
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+        const token = localStorage.getItem("token");
 
-                const result = res.data.result;
-                setUserData({
-                    id: result.id,
-                    username: result.nickName,
-                    img: result.img,
-                    joinDate: result.createDate,
+        const fetchData = async () => {
+            try {
+                const [userRes, practiceRes] = await Promise.all([
+                    http.get(`/api/show-information`, {
+                        params: { userId },
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                    http.get(`/api/show-practice`, {
+                        params: { userId },
+                        headers: { Authorization: `Bearer ${token}` },
+                    }),
+                ]);
+
+                const userResult = userRes.data.result;
+                const practiceResult = practiceRes.data.result;
+
+                const formattedUser = {
+                    id: userResult.id,
+                    username: userResult.nickName,
+                    img: userResult.img,
+                    joinDate: userResult.createDate,
                     totalActiveTime: 12840,
                     coursesCompleted: 8,
                     last7Days: 320,
                     last30Days: 1260,
-                });
-                setLoadingUser(false);
+                };
+
+                setUserData(formattedUser);
+                setPracticeData(practiceResult);
+                localStorage.setItem("nickname", userResult.nickName);
+
             } catch (error) {
                 setErrorUser("Failed to load user data");
-                setLoadingUser(false);
-            }
-        };
-        fetchUser();
-    }, [userId]);
-
-    // Fetch practice info
-    useEffect(() => {
-        const fetchPractice = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await http.get(`/api/show-practice`, {
-                    params: { userId },
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                setPracticeData(res.data.result);
-                setLoadingPractice(false);
-            } catch (error) {
                 setErrorPractice("Failed to load practice data");
+            } finally {
+                setLoadingUser(false);
                 setLoadingPractice(false);
             }
         };
-        fetchPractice();
+
+        if (userId && token) {
+            fetchData();
+        }
     }, [userId]);
 
     const handleSaveNickname = async () => {
@@ -86,10 +84,15 @@ const Profile = () => {
                 }
             );
 
+            // ✅ Cập nhật nickname trong state
             setUserData((prev) => ({
                 ...prev,
                 username: newNickName,
             }));
+
+            // ✅ Ghi vào localStorage (nếu bạn đang dùng ở nơi khác)
+            localStorage.setItem("nickname", newNickName);
+
             setIsEditing(false);
         } catch (error) {
             console.error("Failed to update nickname:", error);
