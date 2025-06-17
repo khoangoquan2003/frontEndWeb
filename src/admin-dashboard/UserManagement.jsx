@@ -4,9 +4,9 @@ import { http } from "../api/Http";
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ id: null, username: '', email: '', role: '' });
+    // Thêm avatarFile và avatarPreview (hiển thị preview ảnh trong form)
+    const [formData, setFormData] = useState({ id: null, username: '', email: '', role: '', avatarFile: null, avatarPreview: '' });
 
-    // Lấy userId người dùng hiện tại từ localStorage
     const currentUserId = parseInt(localStorage.getItem("userId"));
 
     useEffect(() => {
@@ -16,8 +16,6 @@ export default function UserManagement() {
     const fetchUsers = async () => {
         try {
             const response = await http.get('/api/get-all-user');
-            console.log('Raw API response:', response.data);
-
             if (response.data.code === 200) {
                 const mappedUsers = response.data.result.map(user => ({
                     id: user.id,
@@ -26,7 +24,6 @@ export default function UserManagement() {
                     role: user.roles?.[0] || 'User',
                     img: user.img || ''
                 }));
-
                 setUsers(mappedUsers);
             }
         } catch (error) {
@@ -36,35 +33,65 @@ export default function UserManagement() {
     };
 
     const resetForm = () => {
-        setFormData({ id: null, username: '', email: '', role: '' });
+        setFormData({ id: null, username: '', email: '', role: '', avatarFile: null, avatarPreview: '' });
         setShowForm(false);
     };
 
-    const handleSaveUser = () => {
-        const { id, username, email, role } = formData;
+    const handleSaveUser = async () => {
+        const { id, username, email, role, avatarFile } = formData;
 
         if (!username || !email || !role) {
             alert('Please fill all fields!');
             return;
         }
 
-        if (id) {
-            // Update user locally (có thể thay bằng http.put)
-            setUsers(prevUsers =>
-                prevUsers.map(user => user.id === id ? { id, username, email, role } : user)
-            );
-        } else {
-            // Add user locally (có thể thay bằng http.post)
-            const newUser = {
-                id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-                username,
-                email,
-                role
-            };
-            setUsers(prevUsers => [...prevUsers, newUser]);
-        }
+        try {
+            const formDataToSend = new FormData();
 
-        resetForm();
+            const data = {
+                userId: id,
+                userName: username,
+                gmail: email,
+                role: role.toUpperCase(),
+            };
+
+            formDataToSend.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
+
+            if (avatarFile) {
+                formDataToSend.append("avatar", avatarFile);
+            }
+
+            const response = await http.put('/api/edit-user', formDataToSend, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+
+            if (response.data.code === 200) {
+                alert("User updated successfully!");
+
+                const updatedUser = response.data.result;
+                setUsers(prevUsers =>
+                    prevUsers.map(user =>
+                        user.id === updatedUser.id
+                            ? {
+                                id: updatedUser.id,
+                                username: updatedUser.userName,
+                                email: updatedUser.gmail || 'N/A',
+                                role: updatedUser.roles?.[0] || 'USER',
+                                img: updatedUser.img || '',
+                            }
+                            : user
+                    )
+                );
+                resetForm();
+            } else {
+                alert("Failed to update user");
+            }
+        } catch (error) {
+            console.error("Error updating user:", error);
+            alert("Error updating user");
+        }
     };
 
     const handleEditUser = (id) => {
@@ -74,23 +101,31 @@ export default function UserManagement() {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                avatarFile: null,          // Mặc định chưa chọn file mới
+                avatarPreview: user.img,   // Hiển thị avatar hiện tại
             });
             setShowForm(true);
         }
     };
 
-    const handleDeleteUser = async (id) => {
+    async function handleDeleteUser(id) {
         if (!window.confirm("Are you sure you want to delete this user?")) return;
 
         try {
-            await http.delete(`/api/delete-user`, { params: { userId: id } });
+            // Gửi request xóa user
+            await http.delete('/api/delete-user', { params: { userId: id } });
+
+            // Cập nhật state users loại bỏ user đã xóa
             setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
+
+            alert('User deleted successfully!');
         } catch (error) {
-            console.error("Failed to delete user:", error);
-            alert("Error deleting user.");
+            console.error('Failed to delete user:', error);
+            alert('Error deleting user.');
         }
-    };
+    }
+
 
     return (
         <div style={{ padding: '20px', marginLeft: '16rem' }}>
@@ -192,6 +227,35 @@ export default function UserManagement() {
                                 <option value="Admin">Admin</option>
                                 <option value="User">User</option>
                             </select>
+
+                            {/* Avatar upload */}
+                            <label className="block mb-2">Avatar:</label>
+
+                            {formData.avatarPreview ? (
+                                <img
+                                    src={formData.avatarPreview}
+                                    alt="avatar preview"
+                                    className="w-20 h-20 rounded-full object-cover mb-2"
+                                />
+                            ) : (
+                                <span className="text-gray-400 italic mb-2 block">No Image</span>
+                            )}
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            avatarFile: file,
+                                            avatarPreview: URL.createObjectURL(file),
+                                        }));
+                                    }
+                                }}
+                                className="mb-4"
+                            />
 
                             <div className="modal-actions flex justify-end">
                                 <button
