@@ -48,12 +48,14 @@ export default function DictationPage() {
     useEffect(() => {
         if (!courseId) return;
 
+// Lấy transcript
         const fetchTranscript = async () => {
             try {
-                const response = await fetch(
-                    `http://localhost:8080/api/get-transcript?courseId=${courseId}`
-                );
-                const transcriptText = await response.text();
+                const response = await http.get("/api/get-transcript", {
+                    params: { courseId },
+                    responseType: "text",
+                });
+                const transcriptText = response.data;
                 const lines = transcriptText
                     .split("\n")
                     .map((line) => ({ text: line.trim() }));
@@ -71,19 +73,20 @@ export default function DictationPage() {
     const handlePlayPause = async () => {
         if (!isPlaying) {
             try {
+                // Lấy URL audio và play
                 if (!audioUrl) {
-                    const response = await fetch(
-                        `http://localhost:8080/api/get-main-audio?courseId=${courseId}`
-                    );
-                    const audioLink = await response.text();
+                    const response = await http.get("/api/get-main-audio", {
+                        params: { courseId },
+                        responseType: "text",
+                    });
+                    const audioLink = response.data;
                     setAudioUrl(audioLink);
-
-                    // Delay chút để audioRef cập nhật src mới rồi play
                     setTimeout(() => {
                         audioRef.current?.play();
                         setIsPlaying(true);
                     }, 100);
-                } else {
+                }
+                else {
                     audioRef.current?.play();
                     setIsPlaying(true);
                 }

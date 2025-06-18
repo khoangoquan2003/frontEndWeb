@@ -1,48 +1,54 @@
-import { useState, useEffect } from "react";
+"use client"
+
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 export default function TranslationBox({ translation = { en: "No translation available", vi: "Chưa có bản dịch" } }) {
-    const [selectedLang, setSelectedLang] = useState("en");
+    const [selectedLang, setSelectedLang] = useState("en")
 
     const languageLabels = {
         en: "English",
         vi: "Vietnamese",
-    };
+    }
 
     const uiText = {
         title: {
-            en: "🌐 Translations",
+            en: "🌐 Bản dịch",
         },
         empty: {
             en: "There are no translations available.",
         },
-    };
+    }
 
     useEffect(() => {
-        console.log("New translation received: ", translation);
-    }, [translation]);  // Khi translation thay đổi, nó sẽ re-render và log dữ liệu mới.
+        console.log("New translation received: ", translation)
+    }, [translation]) // Khi translation thay đổi, nó sẽ re-render và log dữ liệu mới.
 
     return (
-        <div className="border p-3 rounded bg-white shadow">
-            <h2 className="text-lg font-semibold mb-2">{uiText.title["en"]}</h2>
+        <Card className="p-4 border rounded-lg bg-white shadow-sm">
+            <CardHeader className="p-0 pb-2">
+                <CardTitle className="text-lg font-semibold text-gray-800">{uiText.title["en"]}</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+                <div className="mb-4">
+                    <Select value={selectedLang} onValueChange={setSelectedLang}>
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Chọn ngôn ngữ" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="en">{languageLabels["en"]}</SelectItem>
+                            <SelectItem value="vi">{languageLabels["vi"]}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
 
-            <div className="mb-2">
-                <select
-                    value={selectedLang}
-                    onChange={(e) => setSelectedLang(e.target.value)}
-                    className="px-3 py-2 border rounded bg-white text-gray-700 w-full"
-                >
-                    <option value="en">{languageLabels["en"]}</option>
-                    <option value="vi">{languageLabels["vi"]}</option>
-                </select>
-            </div>
-
-            <div className="space-y-4">
-                <div className="text-gray-800">
-                    <div className="font-semibold cursor-pointer hover:text-blue-600">
-                        {translation[selectedLang]}
+                <div className="space-y-4">
+                    <div className="text-gray-800">
+                        <p className="font-medium text-lg">{translation[selectedLang]}</p>
                     </div>
                 </div>
-            </div>
-        </div>
-    );
+            </CardContent>
+        </Card>
+    )
 }

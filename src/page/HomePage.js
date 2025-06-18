@@ -162,7 +162,7 @@ const HomePage = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-md shadow-sm border-b sticky top-0 z-50">
+            <header className="bg-white/80 backdrop-blur-md shadow-sm border-b">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">

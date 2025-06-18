@@ -30,6 +30,8 @@ import ForgotPassword from "../components/common/ForgotPassword";
 import { Navigate } from "react-router-dom";
 import CourseDetailPage from '../admin-dashboard/CourseDetailPage'; // THÊM DÒNG NÀY
 import AdminRoute from "../admin-route/AdminRoute"; // 🔽 Import ở đầu file
+import Settings from "../admin-dashboard/SystemSettingsForm";
+
 
 const Layout = ({ children, nickname, onLogout }) => {
     const location = useLocation();
@@ -89,6 +91,7 @@ function AppWrapper() {
                 <Route path="/admin" element={<AdminRoute />}>
                     <Route element={<AdminLayout />}>
                         <Route index element={<Navigate to="dashboard" replace />} />
+                        <Route path="settings" element={<Settings />} />
                         <Route path="dashboard" element={<Dashboard />} />
                         <Route path="dictations" element={<DictationList />} />
                         <Route path="users" element={<UserManagement />} />
