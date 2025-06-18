@@ -1,320 +1,423 @@
-import React, { useEffect, useState } from 'react';
-import { http } from '../api/Http';
-import { useNavigate } from 'react-router-dom';
-import AddTopicForm from '../admin-form/AddTopicForm';
-import AddCourseForm from '../admin-form/AddCourseForm';
+"use client"
+
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
+import { Badge } from "../components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog"
+import { ScrollArea } from "../components/ui/scroll-area"
+import {
+    Plus,
+    Edit,
+    Trash2,
+    BookOpen,
+    GraduationCap,
+    FolderOpen,
+    ChevronRight,
+    Info,
+    Layers,
+    PlayCircle,
+    Loader2,
+} from "lucide-react"
+import { http } from "../api/Http"
+import AddTopicForm from "../admin-form/AddTopicForm"
+import AddCourseForm from "../admin-form/AddCourseForm"
 
 export default function DictationList() {
     // === State chính ===
-    const [topics, setTopics] = useState([]);
-    const [loadingTopics, setLoadingTopics] = useState(false);
-    const navigate = useNavigate();
-    const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
+    const [topics, setTopics] = useState([])
+    const [loadingTopics, setLoadingTopics] = useState(false)
+    const navigate = useNavigate()
+    const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false)
 
     // Modal tạo topic mới
-    const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
+    const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false)
     const [newTopic, setNewTopic] = useState({
-        type: '',
-        level: '',
-        countTopic: '',
+        type: "",
+        level: "",
+        countTopic: "",
         image: null,
-    });
-    const [submittingTopic, setSubmittingTopic] = useState(false);
-    const [courseCounts, setCourseCounts] = useState({});
+    })
+    const [submittingTopic, setSubmittingTopic] = useState(false)
+    const [courseCounts, setCourseCounts] = useState({})
 
     // Modal chi tiết topic
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-    const [selectedTopic, setSelectedTopic] = useState(null);
-    const [activeTab, setActiveTab] = useState('info'); // info | sections | courses
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+    const [selectedTopic, setSelectedTopic] = useState(null)
+    const [activeTab, setActiveTab] = useState("info")
 
     // Data Sections và Courses trong modal detail
-    const [sections, setSections] = useState([]);
-    const [loadingSections, setLoadingSections] = useState(false);
-    const [selectedSection, setSelectedSection] = useState(null);
-    const [courses, setCourses] = useState([]);
-    const [loadingCourses, setLoadingCourses] = useState(false);
+    const [sections, setSections] = useState([])
+    const [loadingSections, setLoadingSections] = useState(false)
+    const [selectedSection, setSelectedSection] = useState(null)
+    const [courses, setCourses] = useState([])
+    const [loadingCourses, setLoadingCourses] = useState(false)
 
     // Thêm section mới cho topic đang chọn
-    const [submittingSection, setSubmittingSection] = useState(false);
+    const [submittingSection, setSubmittingSection] = useState(false)
 
     // === Fetch topics khi component mount ===
     useEffect(() => {
-        loadTopics();
-    }, []);
+        loadTopics()
+    }, [])
 
     async function loadTopics() {
-        setLoadingTopics(true);
+        setLoadingTopics(true)
         try {
-            const res = await http.get('/api/show-all-topic');
+            const res = await http.get("/api/show-all-topic")
             if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setTopics(res.data.result);
+                setTopics(res.data.result)
             } else {
-                console.warn('API trả về dữ liệu không đúng', res.data);
+                console.warn("API trả về dữ liệu không đúng", res.data)
             }
         } catch (error) {
-            console.error('Lỗi tải danh sách topics', error);
+            console.error("Lỗi tải danh sách topics", error)
         }
-        setLoadingTopics(false);
+        setLoadingTopics(false)
     }
 
     // === Modal Detail Topic ===
     const openDetailModal = (topic) => {
-        setSelectedTopic(topic);
-        setActiveTab('info');
-        setSelectedSection(null);
-        setCourses([]);
-        fetchSections(topic.id);
-        setIsDetailModalOpen(true);
-    };
+        setSelectedTopic(topic)
+        setActiveTab("info")
+        setSelectedSection(null)
+        setCourses([])
+        fetchSections(topic.id)
+        setIsDetailModalOpen(true)
+    }
 
     const closeDetailModal = () => {
-        setIsDetailModalOpen(false);
-        setSelectedTopic(null);
-        setSections([]);
-        setSelectedSection(null);
-        setCourses([]);
-    };
+        setIsDetailModalOpen(false)
+        setSelectedTopic(null)
+        setSections([])
+        setSelectedSection(null)
+        setCourses([])
+    }
 
     async function fetchSections(topicId) {
-        setLoadingSections(true);
+        setLoadingSections(true)
         try {
-            const res = await http.get('/api/show-all-section', { params: { topicId } });
+            const res = await http.get("/api/show-all-section", { params: { topicId } })
             if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                const loadedSections = res.data.result;
-                setSections(loadedSections);
+                const loadedSections = res.data.result
+                setSections(loadedSections)
 
                 // Gọi API đếm course cho từng section
-                const counts = {};
+                const counts = {}
                 await Promise.all(
                     loadedSections.map(async (section) => {
                         try {
-                            const resCourse = await http.get('/api/show-all-course', { params: { sectionId: section.id } });
-                            counts[section.id] = Array.isArray(resCourse.data.result) ? resCourse.data.result.length : 0;
+                            const resCourse = await http.get("/api/show-all-course", { params: { sectionId: section.id } })
+                            counts[section.id] = Array.isArray(resCourse.data.result) ? resCourse.data.result.length : 0
                         } catch {
-                            counts[section.id] = 0;
+                            counts[section.id] = 0
                         }
-                    })
-                );
-                setCourseCounts(counts);
+                    }),
+                )
+                setCourseCounts(counts)
             } else {
-                setSections([]);
+                setSections([])
             }
         } catch (error) {
-            console.error('Lỗi tải sections', error);
-            setSections([]);
+            console.error("Lỗi tải sections", error)
+            setSections([])
         }
-        setLoadingSections(false);
+        setLoadingSections(false)
     }
 
-// Gọi API lấy danh sách course theo section
     async function fetchCourses(sectionId) {
-        setLoadingCourses(true);
+        setLoadingCourses(true)
         try {
-            const res = await http.get('/api/show-all-course', {
+            const res = await http.get("/api/show-all-course", {
                 params: { sectionId },
-            });
+            })
 
             if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setCourses(res.data.result);
+                setCourses(res.data.result)
             } else {
-                setCourses([]);
+                setCourses([])
             }
         } catch (error) {
-            console.error('Lỗi khi tải danh sách course:', error);
-            setCourses([]);
+            console.error("Lỗi khi tải danh sách course:", error)
+            setCourses([])
         }
-        setLoadingCourses(false);
+        setLoadingCourses(false)
     }
 
     const onSelectSection = async (section) => {
-        setSelectedSection(section);
-        setCourses([]); // reset courses
-        setLoadingCourses(true);
+        setSelectedSection(section)
+        setCourses([])
+        setLoadingCourses(true)
         try {
-            const res = await http.get('/api/show-all-course', { params: { sectionId: section.id } });
+            const res = await http.get("/api/show-all-course", { params: { sectionId: section.id } })
             if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setCourses(res.data.result);
+                setCourses(res.data.result)
             } else {
-                setCourses([]);
+                setCourses([])
             }
         } catch (err) {
-            console.error('Lỗi tải courses:', err);
-            setCourses([]);
+            console.error("Lỗi tải courses:", err)
+            setCourses([])
         }
-        setLoadingCourses(false);
-        setActiveTab('courses');
-    };
+        setLoadingCourses(false)
+        setActiveTab("courses")
+    }
 
     const onNewTopicChange = (e) => {
-        const { name, value, files } = e.target;
-        if (name === 'image') {
-            setNewTopic(prev => ({ ...prev, image: files[0] }));
+        const { name, value, files } = e.target
+        if (name === "image") {
+            setNewTopic((prev) => ({ ...prev, image: files[0] }))
         } else {
-            setNewTopic(prev => ({ ...prev, [name]: value }));
+            setNewTopic((prev) => ({ ...prev, [name]: value }))
         }
-    };
+    }
 
     const submitNewTopic = async (e) => {
-        e.preventDefault();
-        setSubmittingTopic(true);
+        e.preventDefault()
+        setSubmittingTopic(true)
 
         try {
-            const formData = new FormData();
-            formData.append('type', newTopic.type);
-            formData.append('level', newTopic.level);
-            formData.append('countTopic', newTopic.countTopic);
-            formData.append('image', newTopic.image);
+            const formData = new FormData()
+            formData.append("type", newTopic.type)
+            formData.append("level", newTopic.level)
+            formData.append("countTopic", newTopic.countTopic)
+            formData.append("image", newTopic.image)
 
-            const res = await http.post('/api/create-topic', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            const res = await http.post("/api/create-topic", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            })
 
             if (res.data?.result) {
-                loadTopics();
-                setIsAddTopicModalOpen(false);
-                setNewTopic({ type: '', level: '', countTopic: '', image: null });
+                loadTopics()
+                setIsAddTopicModalOpen(false)
+                setNewTopic({ type: "", level: "", countTopic: "", image: null })
             } else {
-                alert('Tạo khóa học thất bại!');
+                alert("Tạo khóa học thất bại!")
             }
         } catch (error) {
-            console.error(error);
-            alert('Lỗi khi gửi form!');
+            console.error(error)
+            alert("Lỗi khi gửi form!")
         }
 
-        setSubmittingTopic(false);
-    };
+        setSubmittingTopic(false)
+    }
 
     const handleAutoCreateSection = async () => {
-        if (!selectedTopic) return alert('Chưa chọn topic!');
-        setSubmittingSection(true);
+        if (!selectedTopic) return alert("Chưa chọn topic!")
+        setSubmittingSection(true)
         try {
-            const nextNumber = sections.length + 1;
+            const nextNumber = sections.length + 1
             const payload = {
                 name: `Section ${nextNumber}`,
                 countOfCourse: 0,
-                topicId: selectedTopic.id
-            };
-            const res = await http.post('/api/create-section', payload);
+                topicId: selectedTopic.id,
+            }
+            const res = await http.post("/api/create-section", payload)
             if (res.data?.result) {
-                const newSec = res.data.result;
-                setSections(prev => [...prev, newSec]);
+                const newSec = res.data.result
+                setSections((prev) => [...prev, newSec])
 
-                // Load course count cho section mới
                 try {
-                    const resCourses = await http.get('/api/show-all-course', {
-                        params: { sectionId: newSec.id }
-                    });
-                    const count = Array.isArray(resCourses.data.result) ? resCourses.data.result.length : 0;
-                    setCourseCounts(prev => ({ ...prev, [newSec.id]: count }));
+                    const resCourses = await http.get("/api/show-all-course", {
+                        params: { sectionId: newSec.id },
+                    })
+                    const count = Array.isArray(resCourses.data.result) ? resCourses.data.result.length : 0
+                    setCourseCounts((prev) => ({ ...prev, [newSec.id]: count }))
                 } catch {
-                    setCourseCounts(prev => ({ ...prev, [newSec.id]: 0 }));
+                    setCourseCounts((prev) => ({ ...prev, [newSec.id]: 0 }))
                 }
 
-                alert('Tạo section thành công!');
+                alert("Tạo section thành công!")
             } else {
-                alert('Tạo section thất bại!');
+                alert("Tạo section thất bại!")
             }
         } catch (err) {
-            console.error('Lỗi khi tạo section:', err);
-            alert('Lỗi khi tạo section!');
+            console.error("Lỗi khi tạo section:", err)
+            alert("Lỗi khi tạo section!")
         }
-        setSubmittingSection(false);
-    };
-    const handleDeleteTopic = async (e, topicId) => {
-        e.stopPropagation(); // Ngăn việc mở modal detail
+        setSubmittingSection(false)
+    }
 
-        if (!window.confirm('Bạn có chắc chắn muốn xoá topic này?')) return;
+    const handleDeleteTopic = async (e, topicId) => {
+        e.stopPropagation()
+
+        if (!window.confirm("Bạn có chắc chắn muốn xoá topic này?")) return
 
         try {
-            await http.delete(`/api/delete-topic/${topicId}`);
-            alert('Xoá topic thành công!');
-            loadTopics(); // Reload danh sách sau khi xoá
+            await http.delete(`/api/delete-topic/${topicId}`)
+            alert("Xoá topic thành công!")
+            loadTopics()
         } catch (error) {
-            console.error('Lỗi khi xoá topic:', error);
-            alert('Xoá topic thất bại!');
+            console.error("Lỗi khi xoá topic:", error)
+            alert("Xoá topic thất bại!")
         }
-    };
+    }
 
     const handleDeleteSection = async (e, sectionId) => {
-        e.stopPropagation(); // Không trigger chọn section
-        if (!window.confirm('Bạn có chắc chắn muốn xoá section này?')) return;
+        e.stopPropagation()
+        if (!window.confirm("Bạn có chắc chắn muốn xoá section này?")) return
 
         try {
-            await http.delete(`/api/delete-section/${sectionId}`);
-            alert('Xoá section thành công!');
-            // Xoá section khỏi state
-            setSections(prev => prev.filter(section => section.id !== sectionId));
-            // Xoá đếm course nếu có
-            setCourseCounts(prev => {
-                const updated = { ...prev };
-                delete updated[sectionId];
-                return updated;
-            });
-            // Nếu section đang xem bị xoá
+            await http.delete(`/api/delete-section/${sectionId}`)
+            alert("Xoá section thành công!")
+            setSections((prev) => prev.filter((section) => section.id !== sectionId))
+            setCourseCounts((prev) => {
+                const updated = { ...prev }
+                delete updated[sectionId]
+                return updated
+            })
             if (selectedSection?.id === sectionId) {
-                setSelectedSection(null);
-                setCourses([]);
+                setSelectedSection(null)
+                setCourses([])
             }
         } catch (error) {
-            console.error('Lỗi khi xoá section:', error);
-            alert('Xoá section thất bại!');
+            console.error("Lỗi khi xoá section:", error)
+            alert("Xoá section thất bại!")
         }
-    };
+    }
+
+    const getLevelColor = (level) => {
+        switch (level?.toLowerCase()) {
+            case "beginner":
+                return "bg-green-100 text-green-800"
+            case "intermediate":
+                return "bg-yellow-100 text-yellow-800"
+            case "advanced":
+                return "bg-red-100 text-red-800"
+            default:
+                return "bg-gray-100 text-gray-800"
+        }
+    }
 
     return (
-        <div style={{ padding: 20, marginLeft: '16rem' }}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6" style={{ marginLeft: "16rem" }}>
             {/* Header */}
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">🧠 DailyDict Admin</h2>
-                <button
+            <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+                        <GraduationCap className="h-8 w-8 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">DailyDict Admin</h1>
+                        <p className="text-gray-600">Quản lý khóa học và nội dung học tập</p>
+                    </div>
+                </div>
+                <Button
                     onClick={() => setIsAddTopicModalOpen(true)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"
                 >
-                    ➕ Add New Topic
-                </button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Thêm Topic Mới
+                </Button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card className="border-0 shadow-md bg-gradient-to-r from-blue-50 to-blue-100">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-blue-600 text-sm font-medium">Tổng Topics</p>
+                                <p className="text-2xl font-bold text-blue-900">{topics.length}</p>
+                            </div>
+                            <BookOpen className="h-8 w-8 text-blue-500" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-0 shadow-md bg-gradient-to-r from-green-50 to-green-100">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-green-600 text-sm font-medium">Tổng Sections</p>
+                                <p className="text-2xl font-bold text-green-900">{sections.length}</p>
+                            </div>
+                            <Layers className="h-8 w-8 text-green-500" />
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="border-0 shadow-md bg-gradient-to-r from-purple-50 to-purple-100">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-purple-600 text-sm font-medium">Tổng Courses</p>
+                                <p className="text-2xl font-bold text-purple-900">
+                                    {Object.values(courseCounts).reduce((sum, count) => sum + count, 0)}
+                                </p>
+                            </div>
+                            <PlayCircle className="h-8 w-8 text-purple-500" />
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Danh sách topic */}
             {loadingTopics ? (
-                <p>Đang tải danh sách khóa học...</p>
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <span className="ml-2 text-gray-600">Đang tải danh sách khóa học...</span>
+                </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {topics.map(topic => (
-                        <div
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {topics.map((topic) => (
+                        <Card
                             key={topic.id}
-                            className="bg-white p-6 rounded-lg shadow-lg cursor-pointer"
+                            className="group cursor-pointer border-0 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white"
                             onClick={() => openDetailModal(topic)}
                         >
-                            {topic.img && (
-                                <img
-                                    src={topic.img}
-                                    alt={topic.title || `Topic #${topic.id}`}
-                                    className="w-full h-40 object-cover rounded-md mb-4"
-                                />
-                            )}
-                            <h3 className="font-semibold text-xl mb-3">
-                                {topic.type || topic.title || `Topic #${topic.id}`}
-                            </h3>
-                            <div className="mt-4 flex space-x-4">
-                                <button
-                                    onClick={e => { e.stopPropagation(); alert('Edit feature coming soon'); }}
-                                    className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={(e) => handleDeleteTopic(e, topic.id)}
+                            <CardContent className="p-0">
+                                {topic.img && (
+                                    <div className="relative overflow-hidden rounded-t-lg">
+                                        <img
+                                            src={topic.img || "/placeholder.svg"}
+                                            alt={topic.title || `Topic #${topic.id}`}
+                                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                                    </div>
+                                )}
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
+                                            {topic.type || topic.title || `Topic #${topic.id}`}
+                                        </h3>
+                                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                                    </div>
 
-                                    className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
+                                    {topic.level && <Badge className={`mb-3 ${getLevelColor(topic.level)}`}>{topic.level}</Badge>}
+
+                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                alert("Edit feature coming soon")
+                                            }}
+                                            className="hover:bg-yellow-50 hover:border-yellow-300 hover:text-yellow-700"
+                                        >
+                                            <Edit className="h-4 w-4 mr-1" />
+                                            Sửa
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => handleDeleteTopic(e, topic.id)}
+                                            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-1" />
+                                            Xóa
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}
 
+            {/* Add Topic Modal */}
             {isAddTopicModalOpen && (
                 <AddTopicForm
                     newTopic={newTopic}
@@ -325,166 +428,225 @@ export default function DictationList() {
                 />
             )}
 
+            {/* Detail Modal */}
+            <Dialog open={isDetailModalOpen} onOpenChange={closeDetailModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+                    <DialogHeader className="p-6 pb-0">
+                        <DialogTitle className="text-2xl font-bold flex items-center">
+                            <BookOpen className="h-6 w-6 mr-2 text-blue-500" />
+                            {selectedTopic?.type || selectedTopic?.title || `Topic #${selectedTopic?.id}`}
+                        </DialogTitle>
+                    </DialogHeader>
 
-            {/* Modal chi tiết topic */}
-            {isDetailModalOpen && selectedTopic && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-40 z-50 flex justify-end"
-                    onClick={closeDetailModal}
-                >
-                    <div
-                        className="bg-white w-full max-w-xl h-full shadow-lg p-6 overflow-auto"
-                        style={{ maxHeight: '100vh' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header modal */}
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold">
-                                {selectedTopic.type || selectedTopic.title || `Topic #${selectedTopic.id}`}
-                            </h3>
-                            <button
-                                onClick={closeDetailModal}
-                                className="text-gray-600 hover:text-gray-900 font-bold text-2xl leading-none"
-                                aria-label="Close modal"
-                            >
-                                &times;
-                            </button>
-                        </div>
-
-                        {/* Tabs */}
-                        <div className="border-b border-gray-300 mb-4">
-                            <nav className="flex space-x-4">
-                                <button
-                                    onClick={() => setActiveTab('info')}
-                                    className={`pb-2 ${activeTab === 'info' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                                >
-                                    Thông tin Topic
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('sections')}
-                                    className={`pb-2 ${activeTab === 'sections' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                                >
+                    <div className="px-6">
+                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="info" className="flex items-center">
+                                    <Info className="h-4 w-4 mr-2" />
+                                    Thông tin
+                                </TabsTrigger>
+                                <TabsTrigger value="sections" className="flex items-center">
+                                    <Layers className="h-4 w-4 mr-2" />
                                     Sections
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (selectedSection) setActiveTab('courses');
-                                        else alert('Vui lòng chọn một section trước');
-                                    }}
-                                    className={`pb-2 ${activeTab === 'courses' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-600 hover:text-gray-900'}`}
-                                >
+                                </TabsTrigger>
+                                <TabsTrigger value="courses" className="flex items-center" disabled={!selectedSection}>
+                                    <PlayCircle className="h-4 w-4 mr-2" />
                                     Courses
-                                </button>
-                            </nav>
-                        </div>
+                                </TabsTrigger>
+                            </TabsList>
 
-                        {/* Nội dung tab */}
-                        <div>
-                            {activeTab === 'info' && (
-                                <div>
-                                    <p><strong>Loại khóa học:</strong> {selectedTopic.type || 'Không có'}</p>
-                                    <p><strong>Trình độ:</strong> {selectedTopic.level || 'Không có'}</p>
-                                    <p><strong>Số lượng section:</strong> {sections.length}</p>
-                                    {selectedTopic.img && (
-                                        <img src={selectedTopic.img} alt="Topic" className="w-full max-h-48 object-cover rounded mt-4" />
-                                    )}
-                                </div>
-                            )}
+                            <ScrollArea className="h-[60vh] mt-4">
+                                <TabsContent value="info" className="space-y-4">
+                                    <Card>
+                                        <CardContent className="p-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-500">Loại khóa học</label>
+                                                        <p className="text-lg font-semibold">{selectedTopic?.type || "Không có"}</p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-500">Trình độ</label>
+                                                        <div className="mt-1">
+                                                            <Badge className={getLevelColor(selectedTopic?.level)}>
+                                                                {selectedTopic?.level || "Không có"}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-500">Số lượng section</label>
+                                                        <p className="text-lg font-semibold">{sections.length}</p>
+                                                    </div>
+                                                </div>
+                                                {selectedTopic?.img && (
+                                                    <div>
+                                                        <label className="text-sm font-medium text-gray-500">Hình ảnh</label>
+                                                        <img
+                                                            src={selectedTopic.img || "/placeholder.svg"}
+                                                            alt="Topic"
+                                                            className="w-full h-48 object-cover rounded-lg mt-2 shadow-md"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </TabsContent>
 
-                            {activeTab === 'sections' && (
-                                <div>
+                                <TabsContent value="sections" className="space-y-4">
                                     {loadingSections ? (
-                                        <p>Đang tải sections...</p>
+                                        <div className="flex items-center justify-center py-8">
+                                            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                                            <span className="ml-2">Đang tải sections...</span>
+                                        </div>
                                     ) : sections.length === 0 ? (
-                                        <p>Không có section nào cho topic này.</p>
+                                        <Card>
+                                            <CardContent className="p-8 text-center">
+                                                <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                                <p className="text-gray-500">Không có section nào cho topic này.</p>
+                                            </CardContent>
+                                        </Card>
                                     ) : (
-                                        <ul className="space-y-3">
-                                            {sections.map(section => (
-                                                <li
+                                        <div className="space-y-3">
+                                            {sections.map((section) => (
+                                                <Card
                                                     key={section.id}
-                                                    className={`p-3 border rounded cursor-pointer flex justify-between items-center ${selectedSection?.id === section.id ? 'bg-blue-100' : 'hover:bg-gray-100'}`}
+                                                    className={`cursor-pointer transition-all duration-200 ${
+                                                        selectedSection?.id === section.id ? "ring-2 ring-blue-500 bg-blue-50" : "hover:shadow-md"
+                                                    }`}
                                                     onClick={() => onSelectSection(section)}
                                                 >
-                                                    <div>
-                                                        <strong>{section.name}</strong> — Số khóa học: {courseCounts[section.id] ?? '...'}
-                                                    </div>
-                                                    <button
-                                                        className="ml-4 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
-                                                        onClick={(e) => handleDeleteSection(e, section.id)}
-                                                    >
-                                                        Xóa
-                                                    </button>
-                                                </li>
+                                                    <CardContent className="p-4">
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="p-2 bg-blue-100 rounded-lg">
+                                                                    <Layers className="h-4 w-4 text-blue-600" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900">{section.name}</h4>
+                                                                    <p className="text-sm text-gray-500">{courseCounts[section.id] ?? "..."} khóa học</p>
+                                                                </div>
+                                                            </div>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={(e) => handleDeleteSection(e, section.id)}
+                                                                className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </CardContent>
+                                                </Card>
                                             ))}
-                                        </ul>
-
+                                        </div>
                                     )}
 
-                                    {/* Form thêm section */}
-                                    <button
+                                    <Button
                                         onClick={handleAutoCreateSection}
                                         disabled={submittingSection}
-                                        className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                                     >
-                                        {submittingSection ? 'Đang tạo...' : '➕ Thêm Section mới'}
-                                    </button>
+                                        {submittingSection ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Đang tạo...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Plus className="h-4 w-4 mr-2" />
+                                                Thêm Section mới
+                                            </>
+                                        )}
+                                    </Button>
+                                </TabsContent>
 
-                                </div>
-                            )}
-
-                            {activeTab === 'courses' && (
-                                <div>
+                                <TabsContent value="courses" className="space-y-4">
                                     {selectedSection ? (
                                         <>
-                                            <h4 className="font-semibold mb-3">Courses của Section: {selectedSection.name}</h4>
-                                            {loadingCourses ? (
-                                                <p>Đang tải courses...</p>
-                                            ) : courses.length === 0 ? (
-                                                <p>Không có course nào cho section này.</p>
-                                            ) : (
-                                                <ul className="space-y-2">
-                                                    {courses.map(course => (
-                                                        <li
-                                                            key={course.id}
-                                                            onClick={() => navigate(`/admin/course/${course.id}`)}
-                                                            className="cursor-pointer border p-3 rounded hover:bg-gray-100"
-                                                        >
-                                                            <strong>{course.name}</strong> — Level: {course.level}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            <button
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center">
+                                                        <PlayCircle className="h-5 w-5 mr-2 text-blue-500" />
+                                                        Courses của Section: {selectedSection.name}
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    {loadingCourses ? (
+                                                        <div className="flex items-center justify-center py-8">
+                                                            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                                                            <span className="ml-2">Đang tải courses...</span>
+                                                        </div>
+                                                    ) : courses.length === 0 ? (
+                                                        <div className="text-center py-8">
+                                                            <PlayCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                                            <p className="text-gray-500">Không có course nào cho section này.</p>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {courses.map((course) => (
+                                                                <Card
+                                                                    key={course.id}
+                                                                    className="cursor-pointer hover:shadow-md transition-shadow"
+                                                                    onClick={() => navigate(`/admin/course/${course.id}`)}
+                                                                >
+                                                                    <CardContent className="p-4">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div className="flex items-center space-x-3">
+                                                                                <div className="p-2 bg-purple-100 rounded-lg">
+                                                                                    <PlayCircle className="h-4 w-4 text-purple-600" />
+                                                                                </div>
+                                                                                <div>
+                                                                                    <h5 className="font-semibold text-gray-900">{course.name}</h5>
+                                                                                    <p className="text-sm text-gray-500">Level: {course.level}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                                                                        </div>
+                                                                    </CardContent>
+                                                                </Card>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+
+                                            <Button
                                                 onClick={() => setIsAddCourseModalOpen(true)}
-                                                className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
                                             >
-                                                ➕ Thêm Course mới
-                                            </button>
+                                                <Plus className="h-4 w-4 mr-2" />
+                                                Thêm Course mới
+                                            </Button>
 
                                             {isAddCourseModalOpen && (
                                                 <AddCourseForm
                                                     sectionId={selectedSection.id}
                                                     onSuccess={() => {
-                                                        fetchCourses(selectedSection.id);
-                                                        setCourseCounts(prev => ({
+                                                        fetchCourses(selectedSection.id)
+                                                        setCourseCounts((prev) => ({
                                                             ...prev,
                                                             [selectedSection.id]: (prev[selectedSection.id] || 0) + 1,
-                                                        }));
+                                                        }))
                                                     }}
                                                     onCancel={() => setIsAddCourseModalOpen(false)}
                                                 />
                                             )}
-
                                         </>
                                     ) : (
-                                        <p>Vui lòng chọn một section trong tab Sections trước.</p>
+                                        <Card>
+                                            <CardContent className="p-8 text-center">
+                                                <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                                <p className="text-gray-500">Vui lòng chọn một section trong tab Sections trước.</p>
+                                            </CardContent>
+                                        </Card>
                                     )}
-                                </div>
-                            )}
-                        </div>
+                                </TabsContent>
+                            </ScrollArea>
+                        </Tabs>
                     </div>
-                </div>
-            )}
+                </DialogContent>
+            </Dialog>
         </div>
-    );
+    )
 }
