@@ -8,7 +8,7 @@ import { Input } from "../components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table"
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar"
-import { Users, Edit, Trash2, UserCheck, Mail, User, Crown, Loader2, Search, Filter } from "lucide-react"
+import { Users, Edit, Trash2, UserCheck, Mail, User, Crown, Loader2, Search } from "lucide-react"
 import { http } from "../api/Http"
 import { EditUserForm } from "../admin-form/EditUserForm"
 import { DeleteUserDialog } from "../admin-form/DeleteUserDialog"
@@ -95,35 +95,41 @@ export default function UserManagement() {
     }
 
     const handleSaveUser = async () => {
-        const { id, username, email, role, avatarFile } = formData
+        const { id, username, email, role, avatarFile } = formData;
+
+        console.log("Form Data before sending:", formData); // Log dữ liệu để kiểm tra
 
         if (!username || !email || !role) {
-            alert("Please fill all fields!")
-            return
+            alert("Please fill all fields!");
+            return;
         }
 
         setSaving(true)
         try {
-            const formDataToSend = new FormData()
-
+            const formDataToSend = new FormData();
             const data = {
                 userId: id,
                 userName: username,
                 gmail: email,
-                role: role.toUpperCase(),
-            }
+                roles: [role.toUpperCase()], // ['ADMIN'] hoặc ['USER']
+            };
 
-            formDataToSend.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }))
+            console.log("Sending data:", data);  // Log để kiểm tra dữ liệu gửi đi
+
+            formDataToSend.append("data", new Blob([JSON.stringify(data)], { type: "application/json" }));
 
             if (avatarFile) {
-                formDataToSend.append("avatar", avatarFile)
+                formDataToSend.append("avatar", avatarFile);
             }
 
             const response = await http.put("/api/edit-user", formDataToSend, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
-            })
+            });
+
+
+            console.log("Response from edit-user API:", response.data)  // <-- In ra đây
 
             if (response.data.code === 200) {
                 alert("User updated successfully!")
@@ -289,13 +295,15 @@ export default function UserManagement() {
                             </div>
                         </div>
                         <div className="w-full md:w-48">
-                            <Select value={roleFilter} onValueChange={setRoleFilter}>
+                            <Select
+                                value={roleFilter}
+                                onValueChange={(value) => setRoleFilter(value)}
+                            >
                                 <SelectTrigger>
-                                    <Filter className="h-4 w-4 mr-2" />
-                                    <SelectValue placeholder="Lọc theo vai trò" />
+                                    <SelectValue placeholder="Chọn vai trò" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tất cả vai trò</SelectItem>
+                                    <SelectItem value="all">Tất cả</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
                                     <SelectItem value="user">User</SelectItem>
                                 </SelectContent>
