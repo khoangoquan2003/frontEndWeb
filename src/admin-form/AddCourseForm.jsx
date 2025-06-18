@@ -1,4 +1,3 @@
-// src/admin-form/AddCourseForm.jsx
 import React, { useState } from 'react';
 import { http } from '../api/Http';
 
@@ -10,20 +9,65 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
         mainAudio: null,
         sentences: [''],
         sentenceAudios: [],
-        transcript: ''
+        transcript: '',
+        mainAudioDuration: null,
+        sentenceAudiosDurations: [],
     });
 
     const [submitting, setSubmitting] = useState(false);
 
+    // Xử lý khi thay đổi transcript
+    const handleTranscriptChange = (e) => {
+        const transcript = e.target.value;
+        const sentences = transcript.split('.').map(sentence => sentence.trim()).filter(sentence => sentence.length > 0);
+
+        setFormData({
+            ...formData,
+            transcript,
+            sentences,
+            countOfSentence: sentences.length,
+        });
+
+        setFormData(prevState => ({
+            ...prevState,
+            sentenceAudios: new Array(sentences.length).fill(null),
+            sentenceAudiosDurations: new Array(sentences.length).fill(null),  // Thêm mảng chứa thời gian cho mỗi câu
+        }));
+    };
+
+    // Hàm để lấy thời gian audio khi người dùng chọn file
+    const handleAudioDuration = (audioFile, index, isMainAudio = false) => {
+        const audio = new Audio(URL.createObjectURL(audioFile));
+        audio.onloadedmetadata = () => {
+            const duration = audio.duration;
+            if (isMainAudio) {
+                setFormData(prevState => ({
+                    ...prevState,
+                    mainAudioDuration: duration,  // Lưu thời gian cho mainAudio
+                }));
+            } else {
+                const newDurations = [...formData.sentenceAudiosDurations];
+                newDurations[index] = duration;
+                setFormData(prevState => ({
+                    ...prevState,
+                    sentenceAudiosDurations: newDurations,  // Lưu thời gian cho từng câu
+                }));
+            }
+        };
+    };
+
     const handleChange = (e) => {
         const { name, value, files } = e.target;
+
         if (name === 'mainAudio') {
             setFormData({ ...formData, mainAudio: files[0] });
+            handleAudioDuration(files[0], null, true);  // Gọi hàm lấy thời gian cho mainAudio
         } else if (name.startsWith('sentenceAudio')) {
             const index = parseInt(name.split('-')[1]);
             const newAudios = [...formData.sentenceAudios];
             newAudios[index] = files[0];
             setFormData({ ...formData, sentenceAudios: newAudios });
+            handleAudioDuration(files[0], index);  // Gọi hàm lấy thời gian cho từng câu
         } else if (name.startsWith('sentence')) {
             const index = parseInt(name.split('-')[1]);
             const newSentences = [...formData.sentences];
@@ -39,6 +83,7 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
             ...formData,
             sentences: [...formData.sentences, ''],
             sentenceAudios: [...formData.sentenceAudios, null],
+            sentenceAudiosDurations: [...formData.sentenceAudiosDurations, null],  // Cập nhật array thời gian
         });
     };
 
@@ -54,8 +99,12 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
             data.append('transcript', formData.transcript);
             data.append('sectionId', sectionId);
 
-            formData.sentences.forEach(s => data.append('sentence', s));
-            formData.sentenceAudios.forEach(audio => data.append('sentenceAudio', audio));
+            formData.sentences.forEach(s => data.append('sentences', s));
+            formData.sentenceAudios.forEach(audio => {
+                if (audio) {
+                    data.append('sentenceAudios', audio);
+                }
+            });
 
             const res = await http.post('/api/create-course', data, {
                 headers: {
@@ -66,7 +115,7 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
             if (res.data?.result) {
                 alert('Tạo course thành công!');
                 onSuccess();
-                onCancel(); // đóng modal
+                onCancel();
             } else {
                 alert('Tạo course thất bại!');
             }
@@ -120,11 +169,15 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
                         required
                         className="w-full border p-2 rounded"
                     />
+                    {formData.mainAudioDuration && (
+                        <div className="text-sm text-gray-500">Thời gian: {formData.mainAudioDuration.toFixed(2)} giây</div>
+                    )}
 
                     <textarea
                         name="transcript"
                         placeholder="Transcript"
-                        onChange={handleChange}
+                        value={formData.transcript}
+                        onChange={handleTranscriptChange}
                         className="w-full border p-2 rounded"
                     />
 
@@ -149,12 +202,15 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
                                     name={`sentenceAudio-${i}`}
                                     onChange={handleChange}
                                     className="w-full border p-2 rounded"
-                                    required
                                 />
+                                {formData.sentenceAudiosDurations[i] && (
+                                    <div className="text-sm text-gray-500">
+                                        Thời gian: {formData.sentenceAudiosDurations[i].toFixed(2)} giây
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
-
 
                     <button type="button" onClick={addSentenceField} className="text-blue-600 underline">
                         + Thêm câu

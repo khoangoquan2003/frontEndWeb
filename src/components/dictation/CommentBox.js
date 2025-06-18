@@ -90,33 +90,6 @@ function CommentBox({ initialComments = [], courseId: propCourseId }) {
             const res = await http.get("/api/get-all-comment", { params: { courseId } })
             const data = res.data
 
-            // Fallback for mock data if API returns empty or non-array
-            if (!Array.isArray(data.result) || data.result.length === 0) {
-                data.result = [
-                    {
-                        id: 1,
-                        content: "This course is very helpful!",
-                        user: { userName: "Alice" },
-                        parentId: null,
-                        createDate: new Date().toISOString(),
-                    },
-                    {
-                        id: 2,
-                        content: "Thanks for the explanation!",
-                        user: { userName: "Bob" },
-                        parentId: 1,
-                        createDate: new Date().toISOString(),
-                    },
-                    {
-                        id: 3,
-                        content: "I'm enjoying the course!",
-                        user: { userName: "Charlie" },
-                        parentId: null,
-                        createDate: new Date().toISOString(),
-                    },
-                ]
-            }
-
             const nestedComments = buildNestedComments(data.result)
             setComments(nestedComments)
             setCommentCount(data.result.length)
