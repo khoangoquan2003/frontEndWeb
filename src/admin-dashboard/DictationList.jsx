@@ -1,295 +1,157 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Button } from "../components/ui/button"
-import { Badge } from "../components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui/dialog"
-import { ScrollArea } from "../components/ui/scroll-area"
-import {
-    Plus,
-    Edit,
-    Trash2,
-    BookOpen,
-    GraduationCap,
-    FolderOpen,
-    ChevronRight,
-    Info,
-    Layers,
-    PlayCircle,
-    Loader2,
-} from "lucide-react"
-import { http } from "../api/Http"
-import AddTopicForm from "../admin-form/AddTopicForm"
-import AddCourseForm from "../admin-form/AddCourseForm"
+import { useEffect, useState } from "react";
+import { Button } from "../components/ui/button";
+import { Plus, GraduationCap } from "lucide-react";
+import StatsCards from "../admin-split-file/StatsCards";
+import TopicGrid from "../admin-split-file/TopicGrid";  // Import TopicGrid component
+import AddTopicForm from "../admin-form/AddTopicForm";
+import EditTopicForm from "../admin-form/EditTopicForm";  // Import EditTopicForm component
+import TopicDetailModal from "../admin-form/TopicDetailModal";
+import { useDictationData } from "../admin-form/useDictationData";
+import { http } from "../api/Http";
 
 export default function DictationList() {
-    // === State chính ===
-    const [topics, setTopics] = useState([])
-    const [loadingTopics, setLoadingTopics] = useState(false)
-    const navigate = useNavigate()
-    const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false)
+    const { topics, loadingTopics, sections, courseCounts, loadTopics, handleDeleteTopic } = useDictationData();
 
-    // Modal tạo topic mới
-    const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false)
+    const [isAddTopicModalOpen, setIsAddTopicModalOpen] = useState(false);
+    const [isEditTopicModalOpen, setIsEditTopicModalOpen] = useState(false);
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [selectedTopic, setSelectedTopic] = useState(null);
     const [newTopic, setNewTopic] = useState({
         type: "",
         level: "",
         countTopic: "",
         image: null,
-    })
-    const [submittingTopic, setSubmittingTopic] = useState(false)
-    const [courseCounts, setCourseCounts] = useState({})
+    });
+    const [submittingTopic, setSubmittingTopic] = useState(false);
+    const [editedTopic, setEditedTopic] = useState(null);  // Đảm bảo có giá trị topic được chỉnh sửa
 
-    // Modal chi tiết topic
-    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
-    const [selectedTopic, setSelectedTopic] = useState(null)
-    const [activeTab, setActiveTab] = useState("info")
-
-    // Data Sections và Courses trong modal detail
-    const [sections, setSections] = useState([])
-    const [loadingSections, setLoadingSections] = useState(false)
-    const [selectedSection, setSelectedSection] = useState(null)
-    const [courses, setCourses] = useState([])
-    const [loadingCourses, setLoadingCourses] = useState(false)
-
-    // Thêm section mới cho topic đang chọn
-    const [submittingSection, setSubmittingSection] = useState(false)
-
-    // === Fetch topics khi component mount ===
-    useEffect(() => {
-        loadTopics()
-    }, [])
-
-    async function loadTopics() {
-        setLoadingTopics(true)
-        try {
-            const res = await http.get("/api/show-all-topic")
-            if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setTopics(res.data.result)
-            } else {
-                console.warn("API trả về dữ liệu không đúng", res.data)
-            }
-        } catch (error) {
-            console.error("Lỗi tải danh sách topics", error)
-        }
-        setLoadingTopics(false)
-    }
-
-    // === Modal Detail Topic ===
+    // Mở modal xem chi tiết
     const openDetailModal = (topic) => {
-        setSelectedTopic(topic)
-        setActiveTab("info")
-        setSelectedSection(null)
-        setCourses([])
-        fetchSections(topic.id)
-        setIsDetailModalOpen(true)
-    }
+        setSelectedTopic(topic);
+        setIsDetailModalOpen(true);
+    };
 
     const closeDetailModal = () => {
-        setIsDetailModalOpen(false)
-        setSelectedTopic(null)
-        setSections([])
-        setSelectedSection(null)
-        setCourses([])
-    }
+        setIsDetailModalOpen(false);
+        setSelectedTopic(null);
+    };
 
-    async function fetchSections(topicId) {
-        setLoadingSections(true)
-        try {
-            const res = await http.get("/api/show-all-section", { params: { topicId } })
-            if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                const loadedSections = res.data.result
-                setSections(loadedSections)
+    // Mở modal chỉnh sửa
+    const openEditModal = (topic) => {
+        setEditedTopic(topic);  // Cập nhật topic cần chỉnh sửa
+        setIsEditTopicModalOpen(true);  // Mở modal chỉnh sửa
+    };
 
-                // Gọi API đếm course cho từng section
-                const counts = {}
-                await Promise.all(
-                    loadedSections.map(async (section) => {
-                        try {
-                            const resCourse = await http.get("/api/show-all-course", { params: { sectionId: section.id } })
-                            counts[section.id] = Array.isArray(resCourse.data.result) ? resCourse.data.result.length : 0
-                        } catch {
-                            counts[section.id] = 0
-                        }
-                    }),
-                )
-                setCourseCounts(counts)
-            } else {
-                setSections([])
-            }
-        } catch (error) {
-            console.error("Lỗi tải sections", error)
-            setSections([])
-        }
-        setLoadingSections(false)
-    }
+    const closeEditModal = () => {
+        setIsEditTopicModalOpen(false);  // Đóng modal chỉnh sửa
+        setEditedTopic(null);  // Xóa topic đang chỉnh sửa
+    };
 
-    async function fetchCourses(sectionId) {
-        setLoadingCourses(true)
-        try {
-            const res = await http.get("/api/show-all-course", {
-                params: { sectionId },
-            })
-
-            if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setCourses(res.data.result)
-            } else {
-                setCourses([])
-            }
-        } catch (error) {
-            console.error("Lỗi khi tải danh sách course:", error)
-            setCourses([])
-        }
-        setLoadingCourses(false)
-    }
-
-    const onSelectSection = async (section) => {
-        setSelectedSection(section)
-        setCourses([])
-        setLoadingCourses(true)
-        try {
-            const res = await http.get("/api/show-all-course", { params: { sectionId: section.id } })
-            if (res.data.code === 200 && Array.isArray(res.data.result)) {
-                setCourses(res.data.result)
-            } else {
-                setCourses([])
-            }
-        } catch (err) {
-            console.error("Lỗi tải courses:", err)
-            setCourses([])
-        }
-        setLoadingCourses(false)
-        setActiveTab("courses")
-    }
-
+    // Handle changes in new topic form
     const onNewTopicChange = (e) => {
-        const { name, value, files } = e.target
+        const { name, value, files } = e.target;
         if (name === "image") {
-            setNewTopic((prev) => ({ ...prev, image: files[0] }))
+            setNewTopic((prev) => ({ ...prev, image: files[0] }));
         } else {
-            setNewTopic((prev) => ({ ...prev, [name]: value }))
+            setNewTopic((prev) => ({ ...prev, [name]: value }));
         }
-    }
+    };
 
+    // Handle changes in edit topic form
+    const onEditedTopicChange = (e) => {
+        const { name, value, files } = e.target;
+        if (name === "image") {
+            setEditedTopic((prev) => ({ ...prev, image: files[0] }));
+        } else {
+            setEditedTopic((prev) => ({ ...prev, [name]: value }));
+        }
+    };
+
+    // Submit new topic
     const submitNewTopic = async (e) => {
-        e.preventDefault()
-        setSubmittingTopic(true)
+        e.preventDefault();
+        setSubmittingTopic(true);
+        if (!newTopic.image) {
+            alert("Vui lòng chọn một ảnh.");
+            setSubmittingTopic(false);
+            return;
+        }
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (newTopic.image.size > maxSize) {
+            alert("Ảnh quá lớn, vui lòng chọn ảnh có kích thước dưới 5MB.");
+            setSubmittingTopic(false);
+            return;
+        }
 
         try {
-            const formData = new FormData()
-            formData.append("type", newTopic.type)
-            formData.append("level", newTopic.level)
-            formData.append("countTopic", newTopic.countTopic)
-            formData.append("image", newTopic.image)
+            const formData = new FormData();
+            formData.append("type", newTopic.type);
+            formData.append("level", newTopic.level);
+            formData.append("countTopic", newTopic.countTopic);
+            formData.append("img", newTopic.image);
 
             const res = await http.post("/api/create-topic", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
-            })
+            });
 
             if (res.data?.result) {
-                loadTopics()
-                setIsAddTopicModalOpen(false)
-                setNewTopic({ type: "", level: "", countTopic: "", image: null })
+                loadTopics();
+                setIsAddTopicModalOpen(false);
+                setNewTopic({ type: "", level: "", countTopic: "", image: null });
             } else {
-                alert("Tạo khóa học thất bại!")
+                alert("Tạo topic thất bại!");
             }
         } catch (error) {
-            console.error(error)
-            alert("Lỗi khi gửi form!")
+            console.error(error);
+            alert("Lỗi khi gửi form!");
         }
+        setSubmittingTopic(false);
+    };
 
-        setSubmittingTopic(false)
-    }
 
-    const handleAutoCreateSection = async () => {
-        if (!selectedTopic) return alert("Chưa chọn topic!")
-        setSubmittingSection(true)
+// Submit edited topic
+    const submitEditedTopic = async (e) => {
+        e.preventDefault();
+        setSubmittingTopic(true);
+
         try {
-            const nextNumber = sections.length + 1
-            const payload = {
-                name: `Section ${nextNumber}`,
-                countOfCourse: 0,
-                topicId: selectedTopic.id,
+            const formData = new FormData();
+            formData.append("type", editedTopic.type);
+            formData.append("level", editedTopic.level);
+            formData.append("countTopic", editedTopic.countTopic);
+
+            // Nếu không có ảnh mới, gửi lại ảnh cũ như một MultipartFile
+            if (editedTopic.image) {
+                formData.append("img", editedTopic.image);
+            } else {
+                // Tạo một file giả từ URL nếu không thay đổi ảnh
+                const img = await fetch(editedTopic.img);
+                const imgBlob = await img.blob();
+                const imgFile = new File([imgBlob], "old_image.jpg", { type: "image/jpeg" });
+                formData.append("img", imgFile);
             }
-            const res = await http.post("/api/create-section", payload)
+
+            const res = await http.put(`/api/update-topic/${editedTopic.id}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
             if (res.data?.result) {
-                const newSec = res.data.result
-                setSections((prev) => [...prev, newSec])
-
-                try {
-                    const resCourses = await http.get("/api/show-all-course", {
-                        params: { sectionId: newSec.id },
-                    })
-                    const count = Array.isArray(resCourses.data.result) ? resCourses.data.result.length : 0
-                    setCourseCounts((prev) => ({ ...prev, [newSec.id]: count }))
-                } catch {
-                    setCourseCounts((prev) => ({ ...prev, [newSec.id]: 0 }))
-                }
-
-                alert("Tạo section thành công!")
+                loadTopics();
+                setIsEditTopicModalOpen(false);
+                setEditedTopic(null);
             } else {
-                alert("Tạo section thất bại!")
-            }
-        } catch (err) {
-            console.error("Lỗi khi tạo section:", err)
-            alert("Lỗi khi tạo section!")
-        }
-        setSubmittingSection(false)
-    }
-
-    const handleDeleteTopic = async (e, topicId) => {
-        e.stopPropagation()
-
-        if (!window.confirm("Bạn có chắc chắn muốn xoá topic này?")) return
-
-        try {
-            await http.delete(`/api/delete-topic/${topicId}`)
-            alert("Xoá topic thành công!")
-            loadTopics()
-        } catch (error) {
-            console.error("Lỗi khi xoá topic:", error)
-            alert("Xoá topic thất bại!")
-        }
-    }
-
-    const handleDeleteSection = async (e, sectionId) => {
-        e.stopPropagation()
-        if (!window.confirm("Bạn có chắc chắn muốn xoá section này?")) return
-
-        try {
-            await http.delete(`/api/delete-section/${sectionId}`)
-            alert("Xoá section thành công!")
-            setSections((prev) => prev.filter((section) => section.id !== sectionId))
-            setCourseCounts((prev) => {
-                const updated = { ...prev }
-                delete updated[sectionId]
-                return updated
-            })
-            if (selectedSection?.id === sectionId) {
-                setSelectedSection(null)
-                setCourses([])
+                alert("Sửa topic thất bại!");
             }
         } catch (error) {
-            console.error("Lỗi khi xoá section:", error)
-            alert("Xoá section thất bại!")
+            console.error("Error response:", error.response);
+            alert("Lỗi khi gửi form!");
         }
-    }
 
-    const getLevelColor = (level) => {
-        switch (level?.toLowerCase()) {
-            case "beginner":
-                return "bg-green-100 text-green-800"
-            case "intermediate":
-                return "bg-yellow-100 text-yellow-800"
-            case "advanced":
-                return "bg-red-100 text-red-800"
-            default:
-                return "bg-gray-100 text-gray-800"
-        }
-    }
+        setSubmittingTopic(false);
+    };
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6" style={{ marginLeft: "16rem" }}>
@@ -313,109 +175,15 @@ export default function DictationList() {
                 </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <Card className="border-0 shadow-md bg-gradient-to-r from-blue-50 to-blue-100">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-blue-600 text-sm font-medium">Tổng Topics</p>
-                                <p className="text-2xl font-bold text-blue-900">{topics.length}</p>
-                            </div>
-                            <BookOpen className="h-8 w-8 text-blue-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-0 shadow-md bg-gradient-to-r from-green-50 to-green-100">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-green-600 text-sm font-medium">Tổng Sections</p>
-                                <p className="text-2xl font-bold text-green-900">{sections.length}</p>
-                            </div>
-                            <Layers className="h-8 w-8 text-green-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-0 shadow-md bg-gradient-to-r from-purple-50 to-purple-100">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-purple-600 text-sm font-medium">Tổng Courses</p>
-                                <p className="text-2xl font-bold text-purple-900">
-                                    {Object.values(courseCounts).reduce((sum, count) => sum + count, 0)}
-                                </p>
-                            </div>
-                            <PlayCircle className="h-8 w-8 text-purple-500" />
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            <StatsCards topics={topics} sections={sections} courseCounts={courseCounts} />
 
-            {/* Danh sách topic */}
-            {loadingTopics ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    <span className="ml-2 text-gray-600">Đang tải danh sách khóa học...</span>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {topics.map((topic) => (
-                        <Card
-                            key={topic.id}
-                            className="group cursor-pointer border-0 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 bg-white"
-                            onClick={() => openDetailModal(topic)}
-                        >
-                            <CardContent className="p-0">
-                                {topic.img && (
-                                    <div className="relative overflow-hidden rounded-t-lg">
-                                        <img
-                                            src={topic.img || "/placeholder.svg"}
-                                            alt={topic.title || `Topic #${topic.id}`}
-                                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                    </div>
-                                )}
-                                <div className="p-6">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="font-bold text-lg text-gray-900 group-hover:text-blue-600 transition-colors">
-                                            {topic.type || topic.title || `Topic #${topic.id}`}
-                                        </h3>
-                                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                                    </div>
-
-                                    {topic.level && <Badge className={`mb-3 ${getLevelColor(topic.level)}`}>{topic.level}</Badge>}
-
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                alert("Edit feature coming soon")
-                                            }}
-                                            className="hover:bg-yellow-50 hover:border-yellow-300 hover:text-yellow-700"
-                                        >
-                                            <Edit className="h-4 w-4 mr-1" />
-                                            Sửa
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={(e) => handleDeleteTopic(e, topic.id)}
-                                            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
-                                        >
-                                            <Trash2 className="h-4 w-4 mr-1" />
-                                            Xóa
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            )}
+            <TopicGrid
+                topics={topics}
+                loadingTopics={loadingTopics}
+                onTopicClick={openDetailModal}
+                onDeleteTopic={handleDeleteTopic}
+                onEditTopic={openEditModal}  // Truyền hàm mở modal chỉnh sửa
+            />
 
             {/* Add Topic Modal */}
             {isAddTopicModalOpen && (
@@ -428,225 +196,21 @@ export default function DictationList() {
                 />
             )}
 
+            {/* Edit Topic Modal */}
+            {isEditTopicModalOpen && editedTopic && (  // Kiểm tra xem editedTopic có tồn tại
+                <EditTopicForm
+                    editedTopic={editedTopic}
+                    onEditedTopicChange={onEditedTopicChange}
+                    submitEditedTopic={submitEditedTopic}
+                    submittingTopic={submittingTopic}
+                    onCancel={() => setIsEditTopicModalOpen(false)}
+                />
+            )}
+
             {/* Detail Modal */}
-            <Dialog open={isDetailModalOpen} onOpenChange={closeDetailModal}>
-                <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-                    <DialogHeader className="p-6 pb-0">
-                        <DialogTitle className="text-2xl font-bold flex items-center">
-                            <BookOpen className="h-6 w-6 mr-2 text-blue-500" />
-                            {selectedTopic?.type || selectedTopic?.title || `Topic #${selectedTopic?.id}`}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="px-6">
-                        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="info" className="flex items-center">
-                                    <Info className="h-4 w-4 mr-2" />
-                                    Thông tin
-                                </TabsTrigger>
-                                <TabsTrigger value="sections" className="flex items-center">
-                                    <Layers className="h-4 w-4 mr-2" />
-                                    Sections
-                                </TabsTrigger>
-                                <TabsTrigger value="courses" className="flex items-center" disabled={!selectedSection}>
-                                    <PlayCircle className="h-4 w-4 mr-2" />
-                                    Courses
-                                </TabsTrigger>
-                            </TabsList>
-
-                            <ScrollArea className="h-[60vh] mt-4">
-                                <TabsContent value="info" className="space-y-4">
-                                    <Card>
-                                        <CardContent className="p-6">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="space-y-4">
-                                                    <div>
-                                                        <label className="text-sm font-medium text-gray-500">Loại khóa học</label>
-                                                        <p className="text-lg font-semibold">{selectedTopic?.type || "Không có"}</p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-sm font-medium text-gray-500">Trình độ</label>
-                                                        <div className="mt-1">
-                                                            <Badge className={getLevelColor(selectedTopic?.level)}>
-                                                                {selectedTopic?.level || "Không có"}
-                                                            </Badge>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="text-sm font-medium text-gray-500">Số lượng section</label>
-                                                        <p className="text-lg font-semibold">{sections.length}</p>
-                                                    </div>
-                                                </div>
-                                                {selectedTopic?.img && (
-                                                    <div>
-                                                        <label className="text-sm font-medium text-gray-500">Hình ảnh</label>
-                                                        <img
-                                                            src={selectedTopic.img || "/placeholder.svg"}
-                                                            alt="Topic"
-                                                            className="w-full h-48 object-cover rounded-lg mt-2 shadow-md"
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </TabsContent>
-
-                                <TabsContent value="sections" className="space-y-4">
-                                    {loadingSections ? (
-                                        <div className="flex items-center justify-center py-8">
-                                            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                                            <span className="ml-2">Đang tải sections...</span>
-                                        </div>
-                                    ) : sections.length === 0 ? (
-                                        <Card>
-                                            <CardContent className="p-8 text-center">
-                                                <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                                <p className="text-gray-500">Không có section nào cho topic này.</p>
-                                            </CardContent>
-                                        </Card>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {sections.map((section) => (
-                                                <Card
-                                                    key={section.id}
-                                                    className={`cursor-pointer transition-all duration-200 ${
-                                                        selectedSection?.id === section.id ? "ring-2 ring-blue-500 bg-blue-50" : "hover:shadow-md"
-                                                    }`}
-                                                    onClick={() => onSelectSection(section)}
-                                                >
-                                                    <CardContent className="p-4">
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center space-x-3">
-                                                                <div className="p-2 bg-blue-100 rounded-lg">
-                                                                    <Layers className="h-4 w-4 text-blue-600" />
-                                                                </div>
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900">{section.name}</h4>
-                                                                    <p className="text-sm text-gray-500">{courseCounts[section.id] ?? "..."} khóa học</p>
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={(e) => handleDeleteSection(e, section.id)}
-                                                                className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    <Button
-                                        onClick={handleAutoCreateSection}
-                                        disabled={submittingSection}
-                                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                                    >
-                                        {submittingSection ? (
-                                            <>
-                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                Đang tạo...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Thêm Section mới
-                                            </>
-                                        )}
-                                    </Button>
-                                </TabsContent>
-
-                                <TabsContent value="courses" className="space-y-4">
-                                    {selectedSection ? (
-                                        <>
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle className="flex items-center">
-                                                        <PlayCircle className="h-5 w-5 mr-2 text-blue-500" />
-                                                        Courses của Section: {selectedSection.name}
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    {loadingCourses ? (
-                                                        <div className="flex items-center justify-center py-8">
-                                                            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                                                            <span className="ml-2">Đang tải courses...</span>
-                                                        </div>
-                                                    ) : courses.length === 0 ? (
-                                                        <div className="text-center py-8">
-                                                            <PlayCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                                            <p className="text-gray-500">Không có course nào cho section này.</p>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-3">
-                                                            {courses.map((course) => (
-                                                                <Card
-                                                                    key={course.id}
-                                                                    className="cursor-pointer hover:shadow-md transition-shadow"
-                                                                    onClick={() => navigate(`/admin/course/${course.id}`)}
-                                                                >
-                                                                    <CardContent className="p-4">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="flex items-center space-x-3">
-                                                                                <div className="p-2 bg-purple-100 rounded-lg">
-                                                                                    <PlayCircle className="h-4 w-4 text-purple-600" />
-                                                                                </div>
-                                                                                <div>
-                                                                                    <h5 className="font-semibold text-gray-900">{course.name}</h5>
-                                                                                    <p className="text-sm text-gray-500">Level: {course.level}</p>
-                                                                                </div>
-                                                                            </div>
-                                                                            <ChevronRight className="h-5 w-5 text-gray-400" />
-                                                                        </div>
-                                                                    </CardContent>
-                                                                </Card>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-
-                                            <Button
-                                                onClick={() => setIsAddCourseModalOpen(true)}
-                                                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-                                            >
-                                                <Plus className="h-4 w-4 mr-2" />
-                                                Thêm Course mới
-                                            </Button>
-
-                                            {isAddCourseModalOpen && (
-                                                <AddCourseForm
-                                                    sectionId={selectedSection.id}
-                                                    onSuccess={() => {
-                                                        fetchCourses(selectedSection.id)
-                                                        setCourseCounts((prev) => ({
-                                                            ...prev,
-                                                            [selectedSection.id]: (prev[selectedSection.id] || 0) + 1,
-                                                        }))
-                                                    }}
-                                                    onCancel={() => setIsAddCourseModalOpen(false)}
-                                                />
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Card>
-                                            <CardContent className="p-8 text-center">
-                                                <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                                <p className="text-gray-500">Vui lòng chọn một section trong tab Sections trước.</p>
-                                            </CardContent>
-                                        </Card>
-                                    )}
-                                </TabsContent>
-                            </ScrollArea>
-                        </Tabs>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {isDetailModalOpen && selectedTopic && (
+                <TopicDetailModal selectedTopic={selectedTopic} isOpen={isDetailModalOpen} onClose={closeDetailModal} />
+            )}
         </div>
-    )
+    );
 }

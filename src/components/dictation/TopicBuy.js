@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { http } from "../../api/Http";
-import TopicForm from "./TopicForm"; // Import form
 
 const TopicBuy = () => {
     const [topics, setTopics] = useState([]);

@@ -74,8 +74,8 @@ const Login = () => {
             setError('Vui lòng nhập mật khẩu');
             return false;
         }
-        if (formData.password.length < 6) {
-            setError('Mật khẩu phải có ít nhất 6 ký tự');
+        if (formData.password.length < 5) {
+            setError('Mật khẩu phải có ít nhất 5 ký tự');
             return false;
         }
         return true;
@@ -84,7 +84,7 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
 
-        // if (!validateForm()) return;
+        if (!validateForm()) return;
 
         setIsLoading(true);
         setError('');
@@ -129,12 +129,17 @@ const Login = () => {
                     const role = decoded.scope || decoded.role || decoded.authorities?.[0];
 
                     // Success toast
-                    toast.success(`Chào mừng ${nickName}! 🎉`, {
-                        position: "top-right",
-                        autoClose: 2000,
-                    });
+                    toast.success(
+                        role === "ADMIN"
+                            ? "Đăng nhập admin! 🎉" // Hiển thị cho Admin
+                            : `Chào mừng ${nickName}! 🎉`, // Hiển thị cho người dùng bình thường
+                        {
+                            position: "top-right",
+                            autoClose: 2000,
+                        }
+                    );
 
-                    // Navigate based on role
+// Navigate based on role
                     setTimeout(() => {
                         if (role === "ADMIN") {
                             navigate("/admin", { replace: true });
@@ -143,10 +148,11 @@ const Login = () => {
                             const from = location.state?.from?.pathname || "/homepage";
                             navigate(from, {
                                 state: { loginSuccess: true, nickname: nickName },
-                                replace: true
+                                replace: true,
                             });
                         }
                     }, 1500);
+
 
                 } catch (tokenError) {
                     console.error("Token validation error:", tokenError);
