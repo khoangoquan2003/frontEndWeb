@@ -29,19 +29,20 @@ export function useDictationData() {
     }
 
     const handleDeleteTopic = async (e, topicId) => {
-        e.stopPropagation()
+        e.stopPropagation();
 
-        if (!window.confirm("Bạn có chắc chắn muốn xoá topic này?")) return
+        if (!window.confirm("Bạn có chắc chắn muốn xoá topic này?")) return;
 
         try {
-            await http.delete(`/api/delete-topic/${topicId}`)
-            alert("Xoá topic thành công!")
-            loadTopics()
+            await http.delete(`/api/delete-topic/${topicId}`);
+            alert("Xoá topic thành công!");
+
+            // Cập nhật state topics, lọc ra topic vừa xóa
+            setTopics(prevTopics => prevTopics.filter(topic => topic.id !== topicId));
         } catch (error) {
-            console.error("Lỗi khi xoá topic:", error)
-            alert("Xoá topic thất bại!")
+            alert("Xoá topic thất bại!");
         }
-    }
+    };
 
     return {
         topics,

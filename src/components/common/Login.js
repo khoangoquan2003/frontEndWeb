@@ -65,11 +65,22 @@ const Login = () => {
         if (error) setError('');
     };
 
+    const validateEmail = (email) => {
+        return /\S+@\S+\.\S+/.test(email);
+    };
+
     const validateForm = () => {
         if (!formData.userName.trim()) {
             setError('Vui lòng nhập tên đăng nhập hoặc email');
             return false;
         }
+
+        // Nếu user nhập dạng email, kiểm tra tính hợp lệ
+        if (formData.userName.includes('@') && !validateEmail(formData.userName.trim())) {
+            setError('Email không hợp lệ');
+            return false;
+        }
+
         if (!formData.password) {
             setError('Vui lòng nhập mật khẩu');
             return false;
@@ -80,7 +91,6 @@ const Login = () => {
         }
         return true;
     };
-
     const handleLogin = async (e) => {
         e.preventDefault();
 
@@ -97,7 +107,7 @@ const Login = () => {
                 headers: {
                     "Content-Type": "application/json"
                 },
-                timeout: 10000 // 10 second timeout
+                timeout: 10000
             });
 
             const { token, nickName, userId } = response.data?.result || {};

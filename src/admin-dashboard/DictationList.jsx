@@ -181,9 +181,10 @@ export default function DictationList() {
                 topics={topics}
                 loadingTopics={loadingTopics}
                 onTopicClick={openDetailModal}
-                onDeleteTopic={handleDeleteTopic}
-                onEditTopic={openEditModal}  // Truyền hàm mở modal chỉnh sửa
+                onDeleteTopic={handleDeleteTopic}  // đúng rồi
+                onEditTopic={openEditModal}
             />
+
 
             {/* Add Topic Modal */}
             {isAddTopicModalOpen && (

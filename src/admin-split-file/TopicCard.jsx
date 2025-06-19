@@ -4,6 +4,7 @@ import { Badge } from "../components/ui/badge";
 import { Edit, Trash2, ChevronRight } from "lucide-react";
 import { getLevelColor } from "./helpers";
 import { http } from "../api/Http";  // Import http từ Http.js
+import { toast } from "react-toastify";
 
 export default function TopicCard({ topic, onClick, onDelete, onEdit }) {
     // Handler cho nút "Sửa"
@@ -19,30 +20,13 @@ export default function TopicCard({ topic, onClick, onDelete, onEdit }) {
     };
 
     // Handler cho nút "Xóa"
-    const handleDelete = async (e) => {
-        e.stopPropagation();  // Ngăn chặn click lên card
+    const handleDelete = (e) => {
+        e.stopPropagation(); // ngăn click lan ra card
         if (onDelete) {
-            console.log("Đang xử lý xóa topic:", topic);  // Log toàn bộ topic
-            const confirmDelete = window.confirm(
-                `Bạn có chắc chắn muốn xóa topic không?`
-            );
-
-            if (confirmDelete) {
-                console.log("Xóa topic với ID:", topic.id);  // Log ID topic khi xóa
-
-                try {
-                    // Gửi yêu cầu DELETE để xóa topic
-                    const response = await http.delete(`/api/delete-topic/${topic.id}`);
-                    console.log("Xóa topic thành công:", response.data);
-
-                    // Nếu có callback onDelete từ component cha, gọi nó
-                    onDelete(topic.id);  // Gọi onDelete để cập nhật UI
-                } catch (error) {
-                    console.error("Lỗi khi xóa topic:", error);
-                }
-            }
+            onDelete(e, topic.id); // gọi callback, truyền event và id topic
         }
     };
+
 
     return (
         <Card

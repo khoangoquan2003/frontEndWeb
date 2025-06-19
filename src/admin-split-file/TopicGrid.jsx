@@ -17,10 +17,11 @@ export default function TopicGrid({ topics, loadingTopics, onTopicClick, onDelet
                 <TopicCard
                     key={topic.id}
                     topic={topic}
-                    onClick={() => onTopicClick(topic)}  // Gọi khi nhấn vào card
-                    onEdit={() => onEditTopic(topic)}  // Truyền hàm chỉnh sửa từ DictationList
-                    onDelete={() => onDeleteTopic(topic.id)}  // Truyền hàm xóa từ DictationList
+                    onClick={() => onTopicClick(topic)}
+                    onEdit={() => onEditTopic(topic)}
+                    onDelete={(e) => onDeleteTopic(e, topic.id)}  // truyền đúng callback với event và id
                 />
+
             ))}
         </div>
     );
