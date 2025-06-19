@@ -6,6 +6,7 @@ import {
     FaBell, FaComment, FaHeart, FaPlus, FaTimes
 } from 'react-icons/fa';
 import { http } from "../../api/Http";
+import { FaDollarSign } from 'react-icons/fa';
 
 // Custom hooks
 const useAuth = () => {
@@ -558,9 +559,14 @@ const Header = ({ nickname: propNickname }) => {
                             <FaClock />
                             <span className="font-medium">{minutes} minutes</span>
                         </div>
+                        {/* Chữ Buy Course */}
 
                         <div className="flex items-center space-x-6">
-                            <ProgressDropdown
+<span className="text-gray-700 font-semibold cursor-pointer hover:text-blue-800 flex items-center space-x-2">
+    <Link to="/topicBuy">
+        <span>Buy Course</span>
+    </Link>
+</span>                            <ProgressDropdown
                                 courses={courses}
                                 onCourseClick={handleCourseClick}
                             />
@@ -573,10 +579,12 @@ const Header = ({ nickname: propNickname }) => {
                                 <span>Notes</span>
                                 {notes.length > 0 && (
                                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                                        {notes.length}
-                                    </span>
+                            {notes.length}
+                        </span>
                                 )}
                             </button>
+
+
 
                             {nickname ? (
                                 <UserDropdown

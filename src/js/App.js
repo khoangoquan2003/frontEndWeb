@@ -31,7 +31,8 @@ import { Navigate } from "react-router-dom";
 import CourseDetailPage from '../admin-dashboard/CourseDetailPage'; // THÊM DÒNG NÀY
 import AdminRoute from "../admin-route/AdminRoute"; // 🔽 Import ở đầu file
 import Settings from "../admin-dashboard/SystemSettingsForm";
-
+import Payment from "../components/payment/PaymentForm";
+import TopicBuy from "../components/dictation/TopicBuy";
 
 const Layout = ({ children, nickname, onLogout }) => {
     const location = useLocation();
@@ -108,7 +109,8 @@ function AppWrapper() {
                     element={
                         <Layout nickname={nickname} onLogout={handleLogout}>
                             <Routes>
-
+                                <Route path="/topicBuy" element={<TopicBuy />} />
+                                <Route path="/payment" element={<Payment />} />
                                 <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
                                 <Route path="/oauth-success" element={<OAuthSuccess />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />

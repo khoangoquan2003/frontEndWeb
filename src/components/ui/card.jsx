@@ -46,4 +46,13 @@ const CardContent = React.forwardRef(({ className, ...props }, ref) => (
 ))
 CardContent.displayName = "CardContent"
 
-export { Card, CardHeader, CardTitle, CardDescription, CardContent }
+const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
+    <div
+        ref={ref}
+        className={cn("p-6 pt-0 border-t", className)} // Add border-top for separation
+        {...props}
+    />
+))
+CardFooter.displayName = "CardFooter"
+
+export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
