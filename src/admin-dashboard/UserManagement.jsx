@@ -22,6 +22,7 @@ export default function UserManagement() {
     const [searchTerm, setSearchTerm] = useState("")
     const [roleFilter, setRoleFilter] = useState("all")
     const [deleteUserId, setDeleteUserId] = useState(null)
+    const [deleting, setDeleting] = useState(false);
 
     const [formData, setFormData] = useState({
         id: null,
@@ -178,20 +179,21 @@ export default function UserManagement() {
     }
 
     const handleDeleteUser = async () => {
-        if (!deleteUserId) return
-
+        if (!deleteUserId) return;
+        setDeleting(true);
         try {
-            await http.delete("/api/delete-user", { params: { userId: deleteUserId } })
-            setUsers((prevUsers) => prevUsers.filter((user) => user.id !== deleteUserId))
-            alert("User deleted successfully!")
-        } catch (error) {
-            console.error("Failed to delete user:", error)
-            alert("Error deleting user.")
+            const res = await http.delete("/api/delete-user", { params: { userId: deleteUserId } });
+            console.log("Delete response:", res.data);
+            setUsers((prev) => prev.filter((u) => u.id !== deleteUserId));
+            alert("User deleted successfully!");
+        } catch (err) {
+            console.error("Failed to delete user:", err);
+            alert("Error deleting user.");
         } finally {
-            setDeleteUserId(null)
+            setDeleting(false);
+            setDeleteUserId(null);
         }
-    }
-
+    };
     const getRoleIcon = (role) => {
         switch (role.toLowerCase()) {
             case "admin":

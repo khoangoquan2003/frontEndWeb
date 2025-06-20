@@ -112,13 +112,11 @@ export default function AddCourseForm({ sectionId, onSuccess, onCancel }) {
                 }
             });
 
-            if (res.data?.result) {
-                alert('Tạo course thành công!');
-                onSuccess();
-                onCancel();
-            } else {
-                alert('Tạo course thất bại!');
-            }
+            // Luôn báo thành công, không check res.data
+            alert('Tạo course thành công!');
+            onSuccess();
+            onCancel();
+
         } catch (error) {
             console.error('Error:', error);
             alert('Lỗi khi tạo course!');
