@@ -63,6 +63,7 @@ export default function Sidebar() {
     const handleLogout = () => {
         localStorage.removeItem("nickname")
         localStorage.removeItem("userId")
+        localStorage.removeItem("token")
 
         toast.info("👋 Bạn đã đăng xuất", {
             position: "top-right",

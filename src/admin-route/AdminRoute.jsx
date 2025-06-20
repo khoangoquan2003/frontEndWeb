@@ -6,12 +6,15 @@ const AdminRoute = () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
+
         return <Navigate to="/login" replace />;
     }
 
     try {
         const decoded = jwtDecode(token);
         const role = decoded.scope || decoded.role || decoded.authorities?.[0];
+        console.log("Role: ", role);
+        console.log("decoded: ", decoded);
 
         if (role === "ADMIN") {
             return <Outlet />;
