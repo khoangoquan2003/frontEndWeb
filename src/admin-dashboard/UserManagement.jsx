@@ -42,6 +42,7 @@ export default function UserManagement() {
         filterUsers()
     }, [users, searchTerm, roleFilter])
 
+
     const filterUsers = () => {
         let filtered = users
 
@@ -144,6 +145,7 @@ export default function UserManagement() {
                                 email: updatedUser.gmail || "N/A",
                                 role: updatedUser.roles?.[0] || "USER",
                                 img: updatedUser.img || "",
+
                             }
                             : user,
                     ),
@@ -297,7 +299,7 @@ export default function UserManagement() {
                         <div className="w-full md:w-48">
                             <Select
                                 value={roleFilter}
-                                onValueChange={(value) => setRoleFilter(value)}
+                                onChange={(e) => setRoleFilter(e.target.value)}
                             >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Chọn vai trò" />
@@ -308,6 +310,7 @@ export default function UserManagement() {
                                     <SelectItem value="user">User</SelectItem>
                                 </SelectContent>
                             </Select>
+
                         </div>
                     </div>
                 </CardContent>

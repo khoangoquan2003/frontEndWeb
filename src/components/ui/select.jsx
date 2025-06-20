@@ -5,7 +5,7 @@ export function Select({ value, onChange, children, className, ...rest }) {
     return (
         <select
             value={value}
-            onChange={onChange}
+            onChange={onChange}  // onChange nhận event, chứ không phải value trực tiếp
             className={`border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className || ""}`}
             {...rest}
         >
@@ -13,6 +13,7 @@ export function Select({ value, onChange, children, className, ...rest }) {
         </select>
     );
 }
+
 
 export function SelectTrigger({ children, className }) {
     // Thường dùng để wrap select hoặc làm UI tùy chỉnh
