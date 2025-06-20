@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios"; // Gọi trực tiếp axios
 import { useNavigate } from 'react-router-dom';
+import { AuthApi } from "../../api/Auth"; // đường dẫn tùy theo cấu trúc thư mục của bạn
 
 function ForgotPassword() {
     const [username, setUsername] = useState("");
@@ -14,16 +15,7 @@ function ForgotPassword() {
         setIsLoading(true);
 
         try {
-            const response = await axios.post(
-                "http://localhost:8080/api/reset-password",
-                null, // không gửi body
-                {
-                    params: { username, email },
-                    // nếu backend không cần cookie/session thì có thể bỏ dòng dưới
-                    withCredentials: true,
-                }
-            );
-
+            const response = await AuthApi.resetPassword(username, email);
             console.log("Reset password response:", response.data);
             setSubmitted(true);
         } catch (error) {
